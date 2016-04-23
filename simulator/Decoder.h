@@ -9,6 +9,7 @@ class Decoder
 {
     public:
         Decoder(unsigned char *instruction);
+        Decoder();
         virtual ~Decoder();
     void print(){
         std::cout << instructionName;

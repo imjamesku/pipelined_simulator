@@ -5,6 +5,10 @@
 #include "Memory.h"
 #include "Decoder.h"
 #include "ControlUnit.h"
+#include "IF_ID.h"
+#include "ID_EX.h"
+#include "EX_MEM.h"
+#include "MEM_WB.h"
 #include <cstdlib>
 #define sp 29
 using namespace std;
@@ -48,7 +52,7 @@ int main()
     reg = new MyRegister(dImage);
    // reg->print();
     dMemory = new Memory(dImage, 0);
-    Decoder d1(iMemory->memory + pc->PC);
+    //Decoder d1(iMemory->memory + pc->PC);
     //d1.print();
     //printf("words = %d\n", iMemory->words);
 
@@ -63,7 +67,25 @@ int main()
 
     printSnapShot(snapShot, cycle, reg, pc);
     print(debug, cycle, reg, pc);
+    Decoder* IF_ins = new Decoder();
+    Decoder* ID_ins = new Decoder();
+    Decoder* EX_ins = new Decoder();
+    Decoder* MEM_ins = new Decoder();
+    Decoder* WB_ins = new Decoder();
+
+
+
     while(1){
+        //WB
+
+        //MEM
+        //EX
+        //ID
+        //IF
+        delete IF_ins;
+        unsigned int instruction = iMemory->getMemoryPointer(pc->PC);
+        IF_ins = new Decoder(instruction);
+        //old
         Decoder d3(iMemory->getMemoryPointer(pc->PC));
         pc->PC += 4;
         fprintf(debug, "instruction = %x\n", d3.instruction);

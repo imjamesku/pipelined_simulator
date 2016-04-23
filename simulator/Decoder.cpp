@@ -1,5 +1,18 @@
 #include "Decoder.h"
 
+Decoder::Decoder(){
+    op = 0;
+    rs = 0;
+    rt = 0;
+    rd = 0;
+    shamt = 0;
+    funct = 0;
+    immediate = 0;
+    address = 0;
+    instruction = 0;
+    instructionName = "sll";
+    type instructionType = R;
+}
 Decoder::Decoder(unsigned char *instruction)
 {
     op = 0;
