@@ -9,6 +9,7 @@ class ProgramCounter
         ProgramCounter(unsigned int pc);
         virtual ~ProgramCounter();
         void setValue(unsigned int rs);
+        unsigned int getValue();
         unsigned int PC;
     protected:
     private:

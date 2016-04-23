@@ -16,3 +16,6 @@ ProgramCounter::~ProgramCounter()
 void ProgramCounter::setValue(unsigned int rs){
     PC = rs;
 }
+unsigned int ProgramCounter::getValue(){
+    return this->PC;
+}

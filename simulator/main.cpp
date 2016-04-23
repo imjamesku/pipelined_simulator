@@ -30,7 +30,7 @@ int main()
     FILE *errorFile;
 
     FILE* debug;
-    
+
     dImage = fopen("dimage.bin", "rb");
     iImage = fopen("iimage.bin", "rb");
     insOut = fopen("ins1.txt", "w");
@@ -79,8 +79,8 @@ int main()
         printSnapShot(snapShot, cycle, reg, pc);
         print(debug, cycle, reg, pc);
        // reg->print();
-        
-        
+
+
 
        //system("PAUSE");
     }
