@@ -97,12 +97,16 @@ int main()
         }
 
         //jal
+        if(WB_ins->instructionName = "jal"){
+            reg->reg[31] = MEM_WB_buffer.newPC;
+        }
 
         //MEM
         MEM_WB_buffer.dataFromAlu = EX_MEM_buffer.aluResult;
         MEM_WB_buffer.doWriteMemToReg = EX_MEM_buffer.writeMemToReg;
         MEM_WB_buffer.regWrite = EX_MEM_buffer.regWrite;
         MEM_WB_buffer.writeRegNum = EX_MEM_buffer.regDestIndex;
+        MEM_WB_buffer.newPC = EX_MEM_buffer.newPC;
         if(EX_MEM_buffer.memRead == 1){
             unsigned int offset = EX_MEM_buffer.aluResult;
             if(MEM_ins->instructionName == "lw"){
@@ -159,6 +163,7 @@ int main()
         EX_MEM_buffer.memWrite = ID_EX_buffer.memWrite;
         EX_MEM_buffer.regWrite = ID_EX_buffer.regWrite;
         EX_MEM_buffer.writeMemToReg = ID_EX_buffer.writeMemToReg;
+        EX_MEM_buffer.newPC = ID_EX_buffer.newPC;
         if(EX_ins->instructionName == "add"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
         }
@@ -252,6 +257,7 @@ int main()
        // ID_EX_buffer.rt = ID_ins->rt;
         ID_EX_buffer.readReg1 = reg->reg[ID_ins->rs];
         ID_EX_buffer.readReg2 = reg->reg[ID_ins->rt];
+        ID_EX_buffer.newPC = IF_ID_buffer.newPC;
         if(ID_ins->instructionName == "beq"){
             if(ID_EX_buffer.readReg1 == ID_EX_buffer.readReg2){
                 branch = 1;
@@ -293,25 +299,16 @@ int main()
         ID_EX_buffer.memWrite = controlSignalsGenerator.genMemWrite(ID_ins);
         ID_EX_buffer.regDest = controlSignalsGenerator.genRegDst(ID_ins);
         //IF
-        delete IF_ins;
         unsigned int instruction = iMemory->getMemoryPointer(pc->PC);
         IF_ins = new Decoder(instruction);
         IF_ID_buffer.newPC = pc->PC + 4;
-        //old
-        Decoder d3(iMemory->getMemoryPointer(pc->PC));
-        pc->PC += 4;
-        fprintf(debug, "instruction = %x\n", d3.instruction);
+        //iterate
+        delete WB_ins;
+        WB_ins = MEM_ins;
+        MEM_ins = EX_ins;
+        EX_ins = ID_ins;
+        ID_ins = IF_ins;
 
-        d3.printDebug(debug);
-
-        cycle++;
-
-        shutDown = controlUnit->execute(&d3, cycle);//run instruction
-        if(d3.instructionName == "halt" || shutDown)
-            break;
-
-        printSnapShot(snapShot, cycle, reg, pc);
-        print(debug, cycle, reg, pc);
        // reg->print();
 
 

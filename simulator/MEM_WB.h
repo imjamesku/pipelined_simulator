@@ -14,6 +14,7 @@ class MEM_WB
         //data
         unsigned int dataFromMem;
         unsigned int dataFromAlu;
+        unsigned int newPC;
         unsigned char writeRegNum;
 };
 

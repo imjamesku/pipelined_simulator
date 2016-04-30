@@ -8,7 +8,7 @@ class ID_EX
         ID_EX();
         virtual ~ID_EX();
         //data
-     //   unsigned int newPC;
+        unsigned int newPC;
         unsigned int readReg1;
         unsigned int readReg2;
       //  unsigned int immediate;

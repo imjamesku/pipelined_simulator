@@ -8,6 +8,7 @@ MEM_WB::MEM_WB()
         dataFromMem = 0;
         dataFromAlu = 0;
         writeRegNum = 0;
+        newPC = 0;
 }
 
 MEM_WB::~MEM_WB()

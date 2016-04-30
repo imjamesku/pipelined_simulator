@@ -6,6 +6,7 @@ EX_MEM::EX_MEM()
         aluResult = 0;
         readReg2 = 0;
         regDestIndex = 0;
+        newPC = 0;
     //control signals
             //MEM control signals
         branch = 0;

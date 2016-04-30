@@ -4,7 +4,7 @@ ID_EX::ID_EX()
 {
     //ctor
     //data
-       // newPC = 0;
+        newPC = 0;
         readReg1 = 0;
         readReg2 = 0;
        // immediate = 0;

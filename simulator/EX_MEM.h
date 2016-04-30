@@ -10,6 +10,7 @@ class EX_MEM
         unsigned int aluResult;
         unsigned int readReg2;
         unsigned char regDestIndex;
+        unsigned int newPC;
         //control signals
             //MEM control signals
         //int branch;
