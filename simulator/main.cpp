@@ -86,6 +86,7 @@ int main()
 
     while(1){
         int branch = 0, branchNewPC;
+        int doForward = 0, doStall = 0;
         //WB
         if(MEM_WB_buffer.regWrite == 1){
             if(MEM_WB_buffer.doWriteMemToReg == 1){
@@ -96,17 +97,20 @@ int main()
             }
         }
 
-        //jal
+            //jal
         if(WB_ins->instructionName = "jal"){
             reg->reg[31] = MEM_WB_buffer.newPC;
         }
 
         //MEM
         MEM_WB_buffer.dataFromAlu = EX_MEM_buffer.aluResult;
+        MEM_WB_buffer.newPC = EX_MEM_buffer.newPC;
+        MEM_WB_buffer.writeRegNum = EX_MEM_buffer.regDestIndex;
+            //control signals
         MEM_WB_buffer.doWriteMemToReg = EX_MEM_buffer.writeMemToReg;
         MEM_WB_buffer.regWrite = EX_MEM_buffer.regWrite;
-        MEM_WB_buffer.writeRegNum = EX_MEM_buffer.regDestIndex;
-        MEM_WB_buffer.newPC = EX_MEM_buffer.newPC;
+
+
         if(EX_MEM_buffer.memRead == 1){
             unsigned int offset = EX_MEM_buffer.aluResult;
             if(MEM_ins->instructionName == "lw"){
@@ -141,7 +145,7 @@ int main()
         }
         if(EX_MEM_buffer.memWrite == 1){
             unsigned int offset = EX_MEM_buffer.aluResult;
-            unsigned int rtValue = reg->reg[MEM_ins->rt];
+            unsigned int rtValue = EX_MEM_buffer.readReg2;
             if(MEM_ins->instructionName == "sw"){
                 dMemory->memory[offset] = rtValue >> 24;
                 dMemory->memory[offset+1] = rtValue >> 16;
@@ -157,13 +161,37 @@ int main()
             }
         }
         //EX
-        EX_MEM_buffer.readReg2 = ID_EX_buffer.readReg2;
 
-        EX_MEM_buffer.memRead = ID_EX_buffer.memRead;
-        EX_MEM_buffer.memWrite = ID_EX_buffer.memWrite;
-        EX_MEM_buffer.regWrite = ID_EX_buffer.regWrite;
-        EX_MEM_buffer.writeMemToReg = ID_EX_buffer.writeMemToReg;
-        EX_MEM_buffer.newPC = ID_EX_buffer.newPC;
+
+        //ALU result
+            //forwarding
+        if(EX_ins->rs != 0 && EX_ins->rs == EX_MEM_buffer.regDestIndex){
+            if(EX_ins->instructionName != "beq" && EX_ins->instructionName != "bne" && EX_ins->instructionName != bgtz){
+                doForward = 1;
+                ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
+            }
+        }
+        else if(EX_ins->rt !=0 && EX_ins->rt == EX_MEM_buffer.regDestIndex){
+            if(EX_ins->instructionType == R){
+                doForward = 1;
+                ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+            }
+            else if(EX_ins->instructionType == I){
+                if(EX_ins->instructionName == "sw"){
+                    doForward = 1;
+                    ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+                }
+                else if(EX_ins->instructionName == "sh"){
+                    doForward = 1;
+                    ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+                }
+                else if(EX_ins->instructionName == "sb"){
+                    doForward = 1;
+                    ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+                }
+            }
+        }
+
         if(EX_ins->instructionName == "add"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
         }
@@ -245,19 +273,27 @@ int main()
         else if(EX_ins->instructionName == "slti"){
             EX_MEM_buffer.aluResult = opFunc.slt(ID_EX_buffer.readReg1, EX_ins->immediate);
         }
+
+        EX_MEM_buffer.readReg2 = ID_EX_buffer.readReg2;
+
         if(ID_EX_buffer.regDest == 1)
             EX_MEM_buffer.regDestIndex = EX_ins->rd;
         else if(ID_EX_buffer.regDest == 0)
             EX_MEM_buffer.regDestIndex = EX_ins->rt;
 
+        EX_MEM_buffer.newPC = ID_EX_buffer.newPC;
+        //control signals
+        EX_MEM_buffer.memRead = ID_EX_buffer.memRead;
+        EX_MEM_buffer.memWrite = ID_EX_buffer.memWrite;
+        EX_MEM_buffer.regWrite = ID_EX_buffer.regWrite;
+        EX_MEM_buffer.writeMemToReg = ID_EX_buffer.writeMemToReg;
+
+
         //ID
-        //ID_EX_buffer.newPC = IF_ID_buffer.newPC;
-       // ID_EX_buffer.immediate = ID_ins->immediate;
-       // ID_EX_buffer.rd = ID_ins->rd;
-       // ID_EX_buffer.rt = ID_ins->rt;
+        ID_EX_buffer.newPC = IF_ID_buffer.newPC;
         ID_EX_buffer.readReg1 = reg->reg[ID_ins->rs];
         ID_EX_buffer.readReg2 = reg->reg[ID_ins->rt];
-        ID_EX_buffer.newPC = IF_ID_buffer.newPC;
+
         if(ID_ins->instructionName == "beq"){
             if(ID_EX_buffer.readReg1 == ID_EX_buffer.readReg2){
                 branch = 1;
@@ -302,6 +338,13 @@ int main()
         unsigned int instruction = iMemory->getMemoryPointer(pc->PC);
         IF_ins = new Decoder(instruction);
         IF_ID_buffer.newPC = pc->PC + 4;
+        IF_ID_buffer.instruction = instruction;
+        if(branch == 1){
+            pc->PC = branchNewPC;
+        }
+        else if(branch == 0){
+            pc->PC = MEM_WB_buffer.newPC;
+        }
         //iterate
         delete WB_ins;
         WB_ins = MEM_ins;

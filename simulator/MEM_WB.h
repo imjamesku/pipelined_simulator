@@ -11,11 +11,12 @@ class MEM_WB
     private:
         int regWrite;
         int doWriteMemToReg;//if==0 write ALU result to reg
+
         //data
         unsigned int dataFromMem;
         unsigned int dataFromAlu;
-        unsigned int newPC;
         unsigned char writeRegNum;
+        unsigned int newPC;
 };
 
 #endif // MEM_WB_H
