@@ -9,6 +9,7 @@
 #include "ID_EX.h"
 #include "EX_MEM.h"
 #include "MEM_WB.h"
+#include "ControlSignalsGenerator.h"
 #include <cstdlib>
 #define sp 29
 using namespace std;
@@ -73,18 +74,229 @@ int main()
     Decoder* MEM_ins = new Decoder();
     Decoder* WB_ins = new Decoder();
 
+    IF_ID IF_ID_buffer();
+    ID_EX ID_EX_buffer();
+    EX_MEM EX_MEM_buffer();
+    MEM_WB MEM_WB_buffer();
+
+    ControlSignalsGenerator controlSignalsGenerator();
+    OperationFunction opFunc();
+
 
 
     while(1){
+        int branch = 0, branchNewPC;
         //WB
+        if(MEM_WB_buffer.regWrite == 1){
+            if(MEM_WB_buffer.doWriteMemToReg == 1){
+                reg->reg[MEM_WB_buffer.writeRegNum] = MEM_WB_buffer.dataFromMem;
+            }
+            else if(MEM_WB_buffer.doWriteMemToReg == 0){
+                reg->reg[MEM_WB_buffer.writeRegNum] = MEM_WB_buffer.dataFromAlu;
+            }
+        }
+
+        //jal
 
         //MEM
+        MEM_WB_buffer.dataFromAlu = EX_MEM_buffer.aluResult;
+        MEM_WB_buffer.doWriteMemToReg = EX_MEM_buffer.writeMemToReg;
+        MEM_WB_buffer.regWrite = EX_MEM_buffer.regWrite;
+        MEM_WB_buffer.writeRegNum = EX_MEM_buffer.regDestIndex;
+        if(EX_MEM_buffer.memRead == 1){
+            unsigned int offset = EX_MEM_buffer.aluResult;
+            if(MEM_ins->instructionName == "lw"){
+                MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 24 | dMemory->memory[offset+1] << 16 | dMemory->memory[offset+2] << 8 | dMemory->memory[offset+3];
+            }
+            else if(MEM_ins->instructionName == "lh"){
+                if( (dMemory->memory[offset] >> 7) == 0 ){
+                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 8 | dMemory->memory[offset+1];
+                }
+                else{
+                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 8 | dMemory->memory[offset+1];
+                    unsigned int t = 0xFFFF0000;
+                    MEM_WB_buffer.dataFromMem = MEM_WB_buffer.dataFromMem | t;
+                }
+            }
+            else if(MEM_ins->instructionName == "lhu"){
+                MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 8 | dMemory->memory[offset+1];
+            }
+            else if(MEM_ins->instructionName == "lb"){
+                if( (dMemory->memory[offset] >> 7) == 0 ){
+                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset];
+                }
+                else{
+                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset];
+                    unsigned int t = 0xFFFFFF00;
+                    MEM_WB_buffer.dataFromMem = MEM_WB_buffer.dataFromMem | t;
+                }
+            }
+            else if(MEM_ins->instructionName == "lbu"){
+                MEM_WB_buffer.dataFromMem = dMemory->memory[offset];
+            }
+        }
+        if(EX_MEM_buffer.memWrite == 1){
+            unsigned int offset = EX_MEM_buffer.aluResult;
+            unsigned int rtValue = reg->reg[MEM_ins->rt];
+            if(MEM_ins->instructionName == "sw"){
+                dMemory->memory[offset] = rtValue >> 24;
+                dMemory->memory[offset+1] = rtValue >> 16;
+                dMemory->memory[offset+2] = rtValue >> 8;
+                dMemory->memory[offset+3] = rtValue;
+            }
+            else if(MEM_ins->instructionName == "sh"){
+                dMemory->memory[offset+2] = rtValue >> 8;
+                dMemory->memory[offset+3] = rtValue;
+            }
+            else if(MEM_ins->instructionName == "sb"){
+                dMemory->memory[offset+3] = rtValue;
+            }
+        }
         //EX
+        EX_MEM_buffer.readReg2 = ID_EX_buffer.readReg2;
+
+        EX_MEM_buffer.memRead = ID_EX_buffer.memRead;
+        EX_MEM_buffer.memWrite = ID_EX_buffer.memWrite;
+        EX_MEM_buffer.regWrite = ID_EX_buffer.regWrite;
+        EX_MEM_buffer.writeMemToReg = ID_EX_buffer.writeMemToReg;
+        if(EX_ins->instructionName == "add"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+        }
+        else if(EX_ins->instructionName == "addu"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+        }
+        else if(EX_ins->instructionName == "sub"){
+            EX_MEM_buffer.aluResult = opFunc.sub(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+        }
+        else if(EX_ins->instructionName == "and"){
+            EX_MEM_buffer.aluResult = opFunc.andFun(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+        }
+        else if(EX_ins->instructionName == "or"){
+            EX_MEM_buffer.aluResult = opFunc.orFun(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+        }
+        else if(EX_ins->instructionName == "xor"){
+            EX_MEM_buffer.aluResult = opFunc.xorFun(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+        }
+        else if(EX_ins->instructionName == "nor"){
+            EX_MEM_buffer.aluResult = opFunc.nor(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+        }
+        else if(EX_ins->instructionName == "nand"){
+            EX_MEM_buffer.aluResult = opFunc.nand(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+        }
+        else if(EX_ins->instructionName == "slt"){
+            EX_MEM_buffer.aluResult = opFunc.slt(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+        }
+        else if(EX_ins->instructionName == "sll"){
+            EX_MEM_buffer.aluResult = opFunc.sll(ID_EX_buffer.readReg2, EX_ins->shamt);
+        }
+        else if(EX_ins->instructionName == "srl"){
+            EX_MEM_buffer.aluResult = opFunc.srl(ID_EX_buffer.readReg2, EX_ins->shamt);
+        }
+        else if(EX_ins->instructionName == "sra"){
+            EX_MEM_buffer.aluResult = opFunc.sra(ID_EX_buffer.readReg2, EX_ins->shamt);
+        }
+        else if(EX_ins->instructionName == "addi"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "addiu"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "lw"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "lh"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "lhu"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "lb"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "lbu"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "sw"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "sh"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "sb"){
+            EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "lui"){
+            EX_MEM_buffer.aluResult = opFunc.lui(EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "andi"){
+            EX_MEM_buffer.aluResult = opFunc.andFun(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "ori"){
+            EX_MEM_buffer.aluResult = opFunc.orFun(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "nori"){
+            EX_MEM_buffer.aluResult = opFunc.nor(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        else if(EX_ins->instructionName == "slti"){
+            EX_MEM_buffer.aluResult = opFunc.slt(ID_EX_buffer.readReg1, EX_ins->immediate);
+        }
+        if(ID_EX_buffer.regDest == 1)
+            EX_MEM_buffer.regDestIndex = EX_ins->rd;
+        else if(ID_EX_buffer.regDest == 0)
+            EX_MEM_buffer.regDestIndex = EX_ins->rt;
+
         //ID
+        //ID_EX_buffer.newPC = IF_ID_buffer.newPC;
+       // ID_EX_buffer.immediate = ID_ins->immediate;
+       // ID_EX_buffer.rd = ID_ins->rd;
+       // ID_EX_buffer.rt = ID_ins->rt;
+        ID_EX_buffer.readReg1 = reg->reg[ID_ins->rs];
+        ID_EX_buffer.readReg2 = reg->reg[ID_ins->rt];
+        if(ID_ins->instructionName == "beq"){
+            if(ID_EX_buffer.readReg1 == ID_EX_buffer.readReg2){
+                branch = 1;
+                branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
+            }
+        }
+        else if(ID_ins->instructionName == "bne"){
+            if(ID_EX_buffer.readReg1 != ID_EX_buffer.readReg2){
+                branch = 1;
+                branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
+            }
+        }
+        else if(ID_ins->instructionName == "bgtz"){
+            unsigned int signBit = ID_EX_buffer.readReg1 >> 31;
+            if(signBit == 0 && ID_EX_buffer.readReg1 != 0)
+                ranch = 1;
+                branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
+        }
+        else if(ID_ins->instructionName == "jr"){
+            branch = 1;
+            branchNewPC = ID_EX_buffer.readReg1;
+        }
+        else if(ID_ins->instructionName == "j"){
+            branch = 1;
+            unsigned int pcFrom31To28;
+            pcFrom31To28 = IF_ID_buffer.newPC & 0xF0000000;
+            branchNewPC = pcFrom31To28 | (4*(ID_ins->address));
+        }
+        else if(ID_ins->instructionName == "jal"){
+            branch = 1;
+            reg->reg[31] = IF_ID_buffer.newPC;
+            unsigned int pcFrom31To28 = IF_ID_buffer.newPC & 0xF0000000;
+            branchNewPC = pcFrom31To28 | ((ID_ins->address) <<2 );
+        }
+            //control signals
+        ID_EX_buffer.writeMemToReg = controlSignalsGenerator.genMemtoReg(ID_ins);
+        ID_EX_buffer.regWrite = controlSignalsGenerator.genRegWrite(ID_ins);
+        ID_EX_buffer.memRead = controlSignalsGenerator.genMemRead(ID_ins);
+        ID_EX_buffer.memWrite = controlSignalsGenerator.genMemWrite(ID_ins);
+        ID_EX_buffer.regDest = controlSignalsGenerator.genRegDst(ID_ins);
         //IF
         delete IF_ins;
         unsigned int instruction = iMemory->getMemoryPointer(pc->PC);
         IF_ins = new Decoder(instruction);
+        IF_ID_buffer.newPC = pc->PC + 4;
         //old
         Decoder d3(iMemory->getMemoryPointer(pc->PC));
         pc->PC += 4;

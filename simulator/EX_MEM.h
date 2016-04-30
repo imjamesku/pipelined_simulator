@@ -7,9 +7,12 @@ class EX_MEM
     public:
         EX_MEM();
         virtual ~EX_MEM();
+        unsigned int aluResult;
+        unsigned int readReg2;
+        unsigned char regDestIndex;
         //control signals
             //MEM control signals
-        int branch;
+        //int branch;
         int memRead;
         int memWrite;
             //WB control signals

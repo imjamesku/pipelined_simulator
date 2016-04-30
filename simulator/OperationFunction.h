@@ -12,16 +12,16 @@ class OperationFunction
         //R-type ins
         unsigned int add(unsigned int rs, unsigned int rt);
        // unsigned int addu(unsigned int rs, unsigned int rt,);
-        void sub(unsigned int rs, unsigned int rt);
-        void andFun(unsigned int rs, unsigned int rt);
-        void orFun(unsigned int rs, unsigned int rt);
-        void xorFun(unsigned int rs, unsigned int rt);
-        void nor(unsigned int rs, unsigned int rt);
-        void nand(unsigned int rs, unsigned int rt);
-        void slt(unsigned int rs, unsigned int rt);
-        void sll(unsigned int rt, unsigned char shamt);
-        void srl(unsigned int rt, unsigned char shamt);
-        void sra(unsigned int rt, unsigned char shamt);
+        unsigned int sub(unsigned int rs, unsigned int rt);
+        unsigned int andFun(unsigned int rs, unsigned int rt);
+        unsigned int orFun(unsigned int rs, unsigned int rt);
+        unsigned int xorFun(unsigned int rs, unsigned int rt);
+        unsigned int nor(unsigned int rs, unsigned int rt);
+        unsigned int nand(unsigned int rs, unsigned int rt);
+        unsigned int slt(unsigned int rs, unsigned int rt);
+        unsigned int sll(unsigned int rt, unsigned char shamt);
+        unsigned int srl(unsigned int rt, unsigned char shamt);
+        unsigned int sra(unsigned int rt, unsigned char shamt);
      //   void jr(unsigned int rs, ProgramCounter *programCounter);
         // I-type ins
        // void addi(unsigned char rs, unsigned char rt, unsigned int immediate);
