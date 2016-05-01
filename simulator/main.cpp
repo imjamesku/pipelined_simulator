@@ -86,7 +86,7 @@ int main()
 
     while(1){
         int branch = 0, branchNewPC;
-        int doForwardToBranch = 0, doForwardToEX = 0, forwardTargetForBranch = 0, forwardTargetForEX = 0;
+        int forwardToBranchRs = 0, forwardToBranchRt = 0, forwardToExRs = 0, forwardToExRt = 0;
         int doStallEX = 0, doStallID = 0;
         //WB
         if(MEM_WB_buffer.regWrite == 1){
@@ -162,31 +162,72 @@ int main()
             }
         }
         //EX
+        /*hazard handling for branches*/
+        if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz"){
+            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){//dependency
+                /*if not forwardable*/
+                if(MEM_ins->instructionName == "lw" || MEM_ins->instructionName == "lh" ||
+                   MEM_ins->instructionName == "lhu" || MEM_ins->instructionName == "lb" ||
+                   MEM_ins->instructionName == "lbu"){
+                        doStallID = 1;
+                   }
+                /*if forwardable*/
+                else{
+                    ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
+                    forwardToBranchRs = 1;
+                }
 
-         //hazard handling (forwarding and stalling for instructions other than branches)
-        if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex){
-            if(ID_ins->instructionName != "beq" && ID_ins->instructionName != "bne" && ID_ins->instructionName != "bgtz"){
-                doForward = 1;
-                ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
+            }
+            else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+                /*if not forwardable*/
+                if(MEM_ins->instructionName == "lw" || MEM_ins->instructionName == "lh" ||
+                   MEM_ins->instructionName == "lhu" || MEM_ins->instructionName == "lb" ||
+                   MEM_ins->instructionName == "lbu"){
+                        doStallID = 1;
+                   }
+                /*if forwardable*/
+                else{
+                    ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+                    forwardToBranchRt = 1;
+                }
+
             }
         }
-        else if(ID_ins->rt !=0 && ID_ins->rt == EX_MEM_buffer.regDestIndex){
-            if(ID_ins->instructionType == R){
-                doForward = 1;
-                ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+
+         //hazard handling (forwarding for instructions other than branches)
+        if(EX_ins->instructionName != "beq" && EX_ins->instructionName != "bne" && EX_ins->instructionName != "bgtz"){
+            if(EX_ins->rs != 0 && EX_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+                /*if not forwardable
+                if(MEM_ins->instructionName == "lw" || MEM_ins->instructionName == "lh" ||
+                   MEM_ins->instructionName == "lhu" || MEM_ins->instructionName == "lb" ||
+                   MEM_ins->instructionName == "lbu"){
+                    doStallEX = 1;
+                }*/
+
+                /*if forwordable*/
+                if(MEM_ins->instructionName != "lw" && MEM_ins->instructionName != "lh" &&
+                   MEM_ins->instructionName != "lhu" && MEM_ins->instructionName != "lb" &&
+                   MEM_ins->instructionName != "lbu"){
+                    forwardToExRs = 1;
+                    ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
+                }
             }
-            else if(ID_ins->instructionType == I){
-                if(ID_ins->instructionName == "sw"){
-                    doForward = 1;
-                    ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
-                }
-                else if(ID_ins->instructionName == "sh"){
-                    doForward = 1;
-                    ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
-                }
-                else if(ID_ins->instructionName == "sb"){
-                    doForward = 1;
-                    ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+            if(EX_ins->rt !=0 && EX_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+                if(ID_ins->instructionType == R || EX_ins->instructionName == "sw" ||
+                   EX_ins->instructionName == "sh" || EX_ins->instructionName == "sb"){
+                    /*if not forwardable
+                    if(MEM_ins->instructionName == "lw" || MEM_ins->instructionName == "lh" ||
+                        MEM_ins->instructionName == "lhu" || MEM_ins->instructionName == "lb" ||
+                        MEM_ins->instructionName == "lbu"){
+                            doStallEX = 1;
+                        }*/
+                    /*if forwardable*/
+                    if(MEM_ins->instructionName != "lw" && MEM_ins->instructionName != "lh" &&
+                    MEM_ins->instructionName != "lhu" && MEM_ins->instructionName != "lb" &&
+                    MEM_ins->instructionName != "lbu"){
+                        forwardToBranchRt = 1;
+                        ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+                    }
                 }
             }
         }
@@ -292,6 +333,29 @@ int main()
 
 
         //ID
+        /*hazard handling for branches or stall*/
+        if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz"){
+            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){//dependency
+                /*stall*/
+                forwardToBranchRs = 0;
+                forwardToBranchRt = 0;
+                doStallID = 1;
+            }
+            else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+                /*stall*/
+                forwardToBranchRs = 0;
+                forwardToBranchRt = 0;
+                doStallID = 1;
+            }
+        }
+        else{
+            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+                if(EX_ins->instructionName == "lw" || EX_ins->instructionName == "lh" || EX_ins->instructionName == "lhu"||
+                   EX_ins->instructionName == "lb" || EX_ins->instructionName == "lbu"){
+                    doStallID = 1;
+                   }
+            }
+        }
         ID_EX_buffer.newPC = IF_ID_buffer.newPC;
         ID_EX_buffer.readReg1 = reg->reg[ID_ins->rs];
         ID_EX_buffer.readReg2 = reg->reg[ID_ins->rt];
