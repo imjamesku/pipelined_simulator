@@ -10,6 +10,7 @@ class Decoder
     public:
         Decoder(unsigned char *instruction);
         Decoder();
+        void setToNop();
         virtual ~Decoder();
     void print(){
         std::cout << instructionName;

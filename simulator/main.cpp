@@ -363,42 +363,21 @@ int main()
 
 
         if(ID_ins->instructionName == "beq"){
-            //forward rs
-            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex){
-                doForward = 1;
-                ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
-            }
-            //forward rt
-            if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex){
-                doForward = 1;
-                ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
-            }
+
             if(ID_EX_buffer.readReg1 == ID_EX_buffer.readReg2){
                 branch = 1;
                 branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
             }
         }
         else if(ID_ins->instructionName == "bne"){
-            //forward rs
-            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex){
-                doForward = 1;
-                ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
-            }
-            //forward rt
-            if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex){
-                doForward = 1;
-                ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
-            }
+
             if(ID_EX_buffer.readReg1 != ID_EX_buffer.readReg2){
                 branch = 1;
                 branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
             }
         }
         else if(ID_ins->instructionName == "bgtz"){
-            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex){
-                doForward = 1;
-                ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
-            }
+
             unsigned int signBit = ID_EX_buffer.readReg1 >> 31;
             if(signBit == 0 && ID_EX_buffer.readReg1 != 0)
                 ranch = 1;
