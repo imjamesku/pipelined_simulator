@@ -177,8 +177,8 @@ void Decoder::setToNop(){
     immediate = 0;
     address = 0;
     instruction = 0;
-    instructionName = "nop";
-    type = R;
+    instructionName = "sll";
+    instructionType = R;
 }
 
 Decoder::~Decoder()

@@ -15,7 +15,7 @@ ID_EX::ID_EX()
         writeMemToReg = 0;
         regWrite = 0;
             //MEM control signals
-        branch = 0;
+//        branch = 0;
         memRead = 0;
         memWrite = 0;
             //EX control signals

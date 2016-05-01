@@ -33,7 +33,7 @@ class OperationFunction
       //  void sw(unsigned char rs, unsigned char rt, unsigned int immediate, Memory *dMemory);
       //  void sh(unsigned char rs, unsigned char rt, unsigned int immediate, Memory *dMemory);
     //    void sb(unsigned char rs, unsigned char rt, unsigned int immediate, Memory *dMemory);
-        void lui(unsigned char rt, unsigned int immediate);
+        unsigned int lui(unsigned int immediate);
        // void andi(unsigned char rs, unsigned char rt, unsigned int immediate);
       //  void ori(unsigned char rs, unsigned char rt, unsigned int immediate);
        // void nori(unsigned char rs, unsigned char rt, unsigned int immediate);

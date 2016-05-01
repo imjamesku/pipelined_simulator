@@ -10,6 +10,7 @@
 #include "EX_MEM.h"
 #include "MEM_WB.h"
 #include "ControlSignalsGenerator.h"
+#include "OperationFunction.h"
 #include <cstdlib>
 #define sp 29
 using namespace std;
@@ -74,14 +75,13 @@ int main()
     Decoder* MEM_ins = new Decoder();
     Decoder* WB_ins = new Decoder();
 
-    IF_ID IF_ID_buffer();
-    ID_EX ID_EX_buffer();
-    EX_MEM EX_MEM_buffer();
-    MEM_WB MEM_WB_buffer();
+    IF_ID IF_ID_buffer;
+    ID_EX ID_EX_buffer;
+    EX_MEM EX_MEM_buffer;
+    MEM_WB MEM_WB_buffer;
 
-    ControlSignalsGenerator controlSignalsGenerator();
-    OperationFunction opFunc();
-
+    ControlSignalsGenerator controlSignalsGenerator;
+    OperationFunction opFunc;
 
 
     while(1){
@@ -99,7 +99,7 @@ int main()
         }
 
             //jal
-        if(WB_ins->instructionName = "jal"){
+        if(WB_ins->instructionName == "jal"){
             reg->reg[31] = MEM_WB_buffer.newPC;
         }
 
@@ -115,6 +115,7 @@ int main()
         if(EX_MEM_buffer.memRead == 1){
             unsigned int offset = EX_MEM_buffer.aluResult;
             if(MEM_ins->instructionName == "lw"){
+                MEM_ins->print();
                 MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 24 | dMemory->memory[offset+1] << 16 | dMemory->memory[offset+2] << 8 | dMemory->memory[offset+3];
             }
             else if(MEM_ins->instructionName == "lh"){
@@ -367,6 +368,7 @@ int main()
             if(ID_EX_buffer.readReg1 == ID_EX_buffer.readReg2){
                 branch = 1;
                 branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
+                IF_ins->setToNop();
             }
         }
         else if(ID_ins->instructionName == "bne"){
@@ -374,30 +376,35 @@ int main()
             if(ID_EX_buffer.readReg1 != ID_EX_buffer.readReg2){
                 branch = 1;
                 branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
+                IF_ins->setToNop();
             }
         }
         else if(ID_ins->instructionName == "bgtz"){
 
             unsigned int signBit = ID_EX_buffer.readReg1 >> 31;
             if(signBit == 0 && ID_EX_buffer.readReg1 != 0)
-                ranch = 1;
+                branch = 1;
                 branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
+                IF_ins->setToNop();
         }
         else if(ID_ins->instructionName == "jr"){
             branch = 1;
             branchNewPC = ID_EX_buffer.readReg1;
+            IF_ins->setToNop();
         }
         else if(ID_ins->instructionName == "j"){
             branch = 1;
             unsigned int pcFrom31To28;
             pcFrom31To28 = IF_ID_buffer.newPC & 0xF0000000;
             branchNewPC = pcFrom31To28 | (4*(ID_ins->address));
+            IF_ins->setToNop();
         }
         else if(ID_ins->instructionName == "jal"){
             branch = 1;
             reg->reg[31] = IF_ID_buffer.newPC;
             unsigned int pcFrom31To28 = IF_ID_buffer.newPC & 0xF0000000;
             branchNewPC = pcFrom31To28 | ((ID_ins->address) <<2 );
+            IF_ins->setToNop();
         }
             //control signals
         ID_EX_buffer.writeMemToReg = controlSignalsGenerator.genMemtoReg(ID_ins);
@@ -406,22 +413,36 @@ int main()
         ID_EX_buffer.memWrite = controlSignalsGenerator.genMemWrite(ID_ins);
         ID_EX_buffer.regDest = controlSignalsGenerator.genRegDst(ID_ins);
         //IF
-        unsigned int instruction = iMemory->getMemoryPointer(pc->PC);
-        IF_ins = new Decoder(instruction);
-        IF_ID_buffer.newPC = pc->PC + 4;
-        IF_ID_buffer.instruction = instruction;
-        if(branch == 1){
-            pc->PC = branchNewPC;
+
+        if(doStallID == 1){
+            delete WB_ins;
+            WB_ins = MEM_ins;
+            MEM_ins = EX_ins;
+            EX_ins = new Decoder();
+            //IF ID remains unchanged
+
+            IF_ID_buffer.newPC = pc->PC + 4;
         }
-        else if(branch == 0){
-            pc->PC = MEM_WB_buffer.newPC;
+        else{
+            delete WB_ins;
+            WB_ins = MEM_ins;
+            MEM_ins = EX_ins;
+            EX_ins = ID_ins;
+            ID_ins = IF_ins;
+            unsigned char* instruction = iMemory->getMemoryPointer(pc->PC);
+            IF_ID_buffer.instruction = (instruction[0]<<24) | (instruction[1]<<16) | (instruction[2]<<8) | instruction[3];
+            IF_ins = new Decoder(instruction);
+            IF_ID_buffer.newPC = pc->PC + 4;
+            if(branch == 1){
+                pc->PC = branchNewPC;
+            }
+            else if(branch == 0){
+                pc->PC = IF_ID_buffer.newPC;
+            }
         }
+
         //iterate
-        delete WB_ins;
-        WB_ins = MEM_ins;
-        MEM_ins = EX_ins;
-        EX_ins = ID_ins;
-        ID_ins = IF_ins;
+
 
        // reg->print();
 
@@ -432,6 +453,11 @@ int main()
     delete dMemory;
     delete iMemory;
     delete controlUnit;
+    delete IF_ins;
+    delete ID_ins;
+    delete EX_ins;
+    delete MEM_ins;
+    delete WB_ins;
     delete pc;
     delete reg;
     fclose(iImage);

@@ -42,9 +42,9 @@ unsigned int OperationFunction::srl(unsigned int rt, unsigned char shamt){
     return rt >> shamt;
 }
 unsigned int OperationFunction::sra(unsigned int rt, unsigned char shamt){
-    int t = (int)rt
+    int t = (int)rt;
     return t >> shamt;
 }
-void OperationFunction::lui(unsigned char rt, unsigned int immediate){
+unsigned int OperationFunction::lui(unsigned int immediate){
     return immediate << 16;
 }

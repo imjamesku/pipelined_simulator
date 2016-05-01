@@ -1,6 +1,6 @@
 #ifndef CONTROLSIGNALSGENERATOR_H
 #define CONTROLSIGNALSGENERATOR_H
-#include <Decoder.h>
+#include "Decoder.h"
 
 class ControlSignalsGenerator
 {

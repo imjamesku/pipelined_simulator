@@ -9,7 +9,7 @@ EX_MEM::EX_MEM()
         newPC = 0;
     //control signals
             //MEM control signals
-        branch = 0;
+//        branch = 0;
         memRead = 0;
         memWrite = 0;
             //WB control signals

@@ -7,8 +7,6 @@ class MEM_WB
     public:
         MEM_WB();
         virtual ~MEM_WB();
-    protected:
-    private:
         int regWrite;
         int doWriteMemToReg;//if==0 write ALU result to reg
 
@@ -17,6 +15,9 @@ class MEM_WB
         unsigned int dataFromAlu;
         unsigned char writeRegNum;
         unsigned int newPC;
+    protected:
+    private:
+
 };
 
 #endif // MEM_WB_H
