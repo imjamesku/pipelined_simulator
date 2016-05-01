@@ -82,12 +82,15 @@ int main()
 
     ControlSignalsGenerator controlSignalsGenerator;
     OperationFunction opFunc;
-
+    unsigned int oldPC = pc->PC;
+    MyRegister oldReg;
 
     while(1){
         int branch = 0, branchNewPC;
         int forwardToBranchRs = 0, forwardToBranchRt = 0, forwardToExRs = 0, forwardToExRt = 0;
         int doStallEX = 0, doStallID = 0;
+
+        oldReg = *reg;
         //WB
         if(MEM_WB_buffer.regWrite == 1){
             if(MEM_WB_buffer.doWriteMemToReg == 1){
@@ -413,6 +416,25 @@ int main()
         ID_EX_buffer.memWrite = controlSignalsGenerator.genMemWrite(ID_ins);
         ID_EX_buffer.regDest = controlSignalsGenerator.genRegDst(ID_ins);
         //IF
+         printf("cycle %d\n", cycle-1);
+        //reg->print();
+        oldReg.print();
+        printf("PC: 0x%x\n", oldPC);
+        printf("IF: 0x%x\t", IF_ID_buffer.instruction);
+        if(doStallID == 1)  printf("to be stalled");
+        IF_ins->print();
+        cout << "ID: " << ID_ins->instructionName << '\t';
+        if(doStallID == 1)  printf("to be stalled");
+        ID_ins->print();
+        cout << "EX: " << EX_ins->instructionName << '\t';
+        EX_ins->print();
+        cout << "DM: " << MEM_ins->instructionName << '\t';
+        MEM_ins->print();
+        cout << "WB: " << WB_ins->instructionName << '\t';
+        WB_ins->print();
+        system("PAUSE");
+
+
 
         if(doStallID == 1){
             delete WB_ins;
@@ -433,6 +455,13 @@ int main()
             IF_ID_buffer.instruction = (instruction[0]<<24) | (instruction[1]<<16) | (instruction[2]<<8) | instruction[3];
             IF_ins = new Decoder(instruction);
             IF_ID_buffer.newPC = pc->PC + 4;
+
+        }
+
+      //  oldPC = pc->PC;
+
+        if(doStallID == 0){
+        oldPC = pc->PC;
             if(branch == 1){
                 pc->PC = branchNewPC;
             }
@@ -440,6 +469,8 @@ int main()
                 pc->PC = IF_ID_buffer.newPC;
             }
         }
+
+        cycle++;
 
         //iterate
 
