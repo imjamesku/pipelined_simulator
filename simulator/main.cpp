@@ -441,11 +441,13 @@ int main()
             WB_ins = MEM_ins;
             MEM_ins = EX_ins;
             EX_ins = new Decoder();
-            //IF ID remains unchanged
+            //IF ID remain unchanged
 
             IF_ID_buffer.newPC = pc->PC + 4;
         }
         else{
+            if(branch == 1)
+                pc->PC = branchNewPC;
             delete WB_ins;
             WB_ins = MEM_ins;
             MEM_ins = EX_ins;
@@ -461,13 +463,14 @@ int main()
       //  oldPC = pc->PC;
 
         if(doStallID == 0){
-        oldPC = pc->PC;
-            if(branch == 1){
+        //oldPC = pc->PC;
+           /* if(branch == 1){
                 pc->PC = branchNewPC;
             }
             else if(branch == 0){
                 pc->PC = IF_ID_buffer.newPC;
-            }
+            }*/
+            pc->PC += 4;
         }
 
         cycle++;
