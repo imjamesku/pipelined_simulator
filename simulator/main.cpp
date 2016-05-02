@@ -371,7 +371,7 @@ int main()
             if(ID_EX_buffer.readReg1 == ID_EX_buffer.readReg2){
                 branch = 1;
                 branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
-                IF_ins->setToNop();
+               // IF_ins->setToNop();
             }
         }
         else if(ID_ins->instructionName == "bne"){
@@ -379,7 +379,7 @@ int main()
             if(ID_EX_buffer.readReg1 != ID_EX_buffer.readReg2){
                 branch = 1;
                 branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
-                IF_ins->setToNop();
+              //  IF_ins->setToNop();
             }
         }
         else if(ID_ins->instructionName == "bgtz"){
@@ -388,26 +388,26 @@ int main()
             if(signBit == 0 && ID_EX_buffer.readReg1 != 0)
                 branch = 1;
                 branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
-                IF_ins->setToNop();
+              //  IF_ins->setToNop();
         }
         else if(ID_ins->instructionName == "jr"){
             branch = 1;
             branchNewPC = ID_EX_buffer.readReg1;
-            IF_ins->setToNop();
+          //  IF_ins->setToNop();
         }
         else if(ID_ins->instructionName == "j"){
             branch = 1;
             unsigned int pcFrom31To28;
             pcFrom31To28 = IF_ID_buffer.newPC & 0xF0000000;
             branchNewPC = pcFrom31To28 | (4*(ID_ins->address));
-            IF_ins->setToNop();
+         //   IF_ins->setToNop();
         }
         else if(ID_ins->instructionName == "jal"){
             branch = 1;
             reg->reg[31] = IF_ID_buffer.newPC;
             unsigned int pcFrom31To28 = IF_ID_buffer.newPC & 0xF0000000;
             branchNewPC = pcFrom31To28 | ((ID_ins->address) <<2 );
-            IF_ins->setToNop();
+         //   IF_ins->setToNop();
         }
             //control signals
         ID_EX_buffer.writeMemToReg = controlSignalsGenerator.genMemtoReg(ID_ins);
@@ -417,17 +417,22 @@ int main()
         ID_EX_buffer.regDest = controlSignalsGenerator.genRegDst(ID_ins);
         //IF
          printf("cycle %d\n", cycle-1);
-        //reg->print();
-        oldReg.print();
-        printf("PC: 0x%x\n", oldPC);
+        reg->print();
+        //oldReg.print();
+        printf("PC: 0x%x\n", pc->PC);
         printf("IF: 0x%x\t", IF_ID_buffer.instruction);
         if(doStallID == 1)  printf("to be stalled");
         IF_ins->print();
         cout << "ID: " << ID_ins->instructionName << '\t';
         if(doStallID == 1)  printf("to be stalled");
+        if(branch == 1) printf("\tbranch is taken");
+        if(forwardToBranchRs == 1)  printf("\t fwd to rs");
+        if(forwardToBranchRt == 1)  printf("\t fwd to rt");
         ID_ins->print();
         cout << "EX: " << EX_ins->instructionName << '\t';
         EX_ins->print();
+        if(forwardToExRs) printf("\t fwd to rs");
+        if(forwardToExRt) printf("\t fwd to rt");
         cout << "DM: " << MEM_ins->instructionName << '\t';
         MEM_ins->print();
         cout << "WB: " << WB_ins->instructionName << '\t';
@@ -446,8 +451,10 @@ int main()
             IF_ID_buffer.newPC = pc->PC + 4;
         }
         else{
-            if(branch == 1)
+            if(branch == 1){
                 pc->PC = branchNewPC;
+                IF_ins->setToNop();
+            }
             delete WB_ins;
             WB_ins = MEM_ins;
             MEM_ins = EX_ins;
