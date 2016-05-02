@@ -14,7 +14,10 @@
 #include <cstdlib>
 #define sp 29
 using namespace std;
-void printSnapShot(FILE* snapShot, int cycle, MyRegister* reg, ProgramCounter* pc);
+void printSnapShot(FILE* snapShot, int cycle, MyRegister* reg, int pc,
+                   Decoder* IF_ins, Decoder* ID_ins, Decoder* EX_ins,
+                   Decoder* MEM_ins, Decoder* WB_ins, int branch, int stall,
+                   int forwardToBranchRs, int forwardToBranchRt, int forwardToExRs, int forwardToExRt);
 void print(FILE* debug, int cycle, MyRegister* reg, ProgramCounter* pc);
 int main()
 {
@@ -64,11 +67,11 @@ int main()
         d2.fprint(insOut);
     }*/
 
-    int cycle = 0, shutDown = 0;
+    int cycle = -1;
     controlUnit = new ControlUnit(reg, pc, dMemory, errorFile);
 
-    printSnapShot(snapShot, cycle, reg, pc);
-    print(debug, cycle, reg, pc);
+//    printSnapShot(snapShot, cycle, reg, pc);
+  //  print(debug, cycle, reg, pc);
     Decoder* IF_ins = new Decoder();
     Decoder* ID_ins = new Decoder();
     Decoder* EX_ins = new Decoder();
@@ -88,7 +91,7 @@ int main()
     while(1){
         int branch = 0, branchNewPC;
         int forwardToBranchRs = 0, forwardToBranchRt = 0, forwardToExRs = 0, forwardToExRt = 0;
-        int doStallEX = 0, doStallID = 0;
+        int doStallID = 0;
 
         oldReg = *reg;
         //WB
@@ -416,28 +419,40 @@ int main()
         ID_EX_buffer.memWrite = controlSignalsGenerator.genMemWrite(ID_ins);
         ID_EX_buffer.regDest = controlSignalsGenerator.genRegDst(ID_ins);
         //IF
-         printf("cycle %d\n", cycle-1);
+        if(cycle > -1){
+            printSnapShot(snapShot, cycle, &oldReg, oldPC, IF_ins,
+                          ID_ins, EX_ins, MEM_ins, WB_ins, branch, doStallID,
+                          forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);
+        }
+
+
+        printf("cycle %d\n", cycle);
         reg->print();
         //oldReg.print();
-        printf("PC: 0x%x\n", pc->PC);
+        printf("PC: 0x%x\n", oldPC);
         printf("IF: 0x%x\t", IF_ID_buffer.instruction);
         if(doStallID == 1)  printf("to be stalled");
         IF_ins->print();
-        cout << "ID: " << ID_ins->instructionName << '\t';
+        cout << "ID: " << ID_ins->returnName() << '\t';
         if(doStallID == 1)  printf("to be stalled");
         if(branch == 1) printf("\tbranch is taken");
         if(forwardToBranchRs == 1)  printf("\t fwd to rs");
         if(forwardToBranchRt == 1)  printf("\t fwd to rt");
         ID_ins->print();
-        cout << "EX: " << EX_ins->instructionName << '\t';
+        cout << "EX: " << EX_ins->returnName() << '\t';
         EX_ins->print();
         if(forwardToExRs) printf("\t fwd to rs");
         if(forwardToExRt) printf("\t fwd to rt");
-        cout << "DM: " << MEM_ins->instructionName << '\t';
+        cout << "DM: " << MEM_ins->returnName() << '\t';
         MEM_ins->print();
-        cout << "WB: " << WB_ins->instructionName << '\t';
+        cout << "WB: " << WB_ins->returnName() << '\t';
         WB_ins->print();
         system("PAUSE");
+        /*if */
+        if(IF_ins->instructionName == "halt" && ID_ins->instructionName == "halt" && EX_ins->instructionName == "halt" &&
+           MEM_ins->instructionName == "halt" && WB_ins->instructionName == "halt"){
+                break;
+           }
 
 
 
@@ -453,6 +468,7 @@ int main()
         else{
             if(branch == 1){
                 pc->PC = branchNewPC;
+                //flush IF
                 IF_ins->setToNop();
             }
             delete WB_ins;
@@ -462,6 +478,7 @@ int main()
             ID_ins = IF_ins;
             unsigned char* instruction = iMemory->getMemoryPointer(pc->PC);
             IF_ID_buffer.instruction = (instruction[0]<<24) | (instruction[1]<<16) | (instruction[2]<<8) | instruction[3];
+            oldPC = pc->PC;//the pc we need to print is the pc where the ins in fetched,  so we need to copy the save the pc here
             IF_ins = new Decoder(instruction);
             IF_ID_buffer.newPC = pc->PC + 4;
 
@@ -509,10 +526,38 @@ int main()
     fclose(debug);
     return 0;
 }
-void printSnapShot(FILE* snapShot, int cycle, MyRegister* reg, ProgramCounter* pc){
+void printSnapShot(FILE* snapShot, int cycle, MyRegister* reg, int pc,
+                   Decoder* IF_ins, Decoder* ID_ins, Decoder* EX_ins,
+                   Decoder* MEM_ins, Decoder* WB_ins, int branch, int stall,
+                   int forwardToBranchRs, int forwardToBranchRt, int forwardToExRs, int forwardToExRt){
     fprintf(snapShot, "cycle %d\n", cycle);
     reg->printSnapShot(snapShot);
-    fprintf(snapShot, "PC: 0x%08X", pc->PC);
+    fprintf(snapShot, "PC: 0x%08X\n", pc);
+
+    fprintf(snapShot, "IF: 0x%08X", IF_ins->instruction);
+    if(stall == 1)  fprintf(snapShot, " to_be_stalled");
+    else if(branch == 1)    fprintf(snapShot, " to_be_flushed");
+    fprintf(snapShot, "\n");
+
+    fprintf(snapShot, "ID: %s", ID_ins->returnName().data());
+    if(stall == 1)  fprintf(snapShot, " to_be_stalled");
+    else{
+        if(forwardToBranchRs == 1) fprintf(snapShot, " fwd_EX-DM_rs_$%d", ID_ins->rs);
+        if(forwardToBranchRt == 1) fprintf(snapShot, " fwd_EX-DM_rt_$%d", ID_ins->rt);
+    }
+    fprintf(snapShot, "\n");
+
+    fprintf(snapShot, "EX: %s", EX_ins->returnName().data());
+    if(forwardToExRs == 1) fprintf(snapShot, " fwd_EX-DM_rs_$%d", EX_ins->rs);
+    if(forwardToExRt == 1) fprintf(snapShot, " fwd_EX-DM_rt_$%d", EX_ins->rt);
+    fprintf(snapShot, "\n");
+
+    fprintf(snapShot, "DM: %s", MEM_ins->returnName().data());
+    fprintf(snapShot, "\n");
+
+    fprintf(snapShot, "WB: %s", WB_ins->returnName().data());
+    //fprintf(snapShot, "\n");
+
     fprintf(snapShot,"\n\n\n");
 }
 void print(FILE* debug, int cycle, MyRegister* reg, ProgramCounter* pc){

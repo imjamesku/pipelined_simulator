@@ -56,6 +56,7 @@ class Decoder
         }
         fprintf(out,"\n");
     }
+    std::string returnName();
     unsigned char op, rs, rt, rd, shamt, funct;
     unsigned int immediate;
     unsigned int address;
