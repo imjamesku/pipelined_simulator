@@ -169,7 +169,7 @@ int main()
             }
         }
         //EX
-        /*hazard handling for branches*/
+        /*hazard handling for branches ID STAGE*/
         if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz"){
             if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){//dependency
                 /*if not forwardable*/
@@ -198,6 +198,11 @@ int main()
                     forwardToBranchRt = 1;
                 }
 
+            }
+        }
+        else{
+            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+                    doStallID = 1;
             }
         }
 
