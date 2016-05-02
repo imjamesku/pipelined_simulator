@@ -169,9 +169,14 @@ int main()
             }
         }
         //EX
-        /*hazard handling for branches ID STAGE*/
+        /*hazard handling for branches in ID STAGE*/
         if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz"){
-            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){//dependency
+            /*rs*/
+            if(ID_ins->rs == 31 && MEM_ins->instructionName == "jal"){
+                ID_EX_buffer.readReg1 = EX_MEM_buffer.newPC;
+                forwardToBranchRs = 1;
+            }
+            else if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){//dependency
                 /*if not forwardable*/
                 if(MEM_ins->instructionName == "lw" || MEM_ins->instructionName == "lh" ||
                    MEM_ins->instructionName == "lhu" || MEM_ins->instructionName == "lb" ||
@@ -183,9 +188,14 @@ int main()
                     ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
                     forwardToBranchRs = 1;
                 }
-
             }
-            else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+
+            /*rt*/
+            if(ID_ins->rt == 31 && MEM_ins->instructionName == "jal" && doStallID == 0){
+                ID_EX_buffer.readReg2 = EX_MEM_buffer.newPC;
+                forwardToBranchRt = 1;
+            }
+            else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && doStallID == 0){
                 /*if not forwardable*/
                 if(MEM_ins->instructionName == "lw" || MEM_ins->instructionName == "lh" ||
                    MEM_ins->instructionName == "lhu" || MEM_ins->instructionName == "lb" ||
@@ -201,14 +211,29 @@ int main()
             }
         }
         else{
-            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+            if(ID_ins->rs == 31 && MEM_ins->instructionName == "jal"){
+                doStallID = 1;
+            }
+            else if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
                     doStallID = 1;
             }
+            if(ID_ins->rt == 31 && MEM_ins->instructionName == "jal" && doStallID == 0){
+                doStallID = 1;
+            }
+            else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && doStallID == 0){
+                    doStallID = 1;
+            }
+            //if(ID_ins->rs == 31 && EX)
         }
 
-         //hazard handling (forwarding for instructions other than branches)
+         //hazard handling (ONLY forwarding for instructions other than branches IN EX STAGE. CANNOT be stalled. stalling has be done in ID)
         if(EX_ins->instructionName != "beq" && EX_ins->instructionName != "bne" && EX_ins->instructionName != "bgtz"){
-            if(EX_ins->rs != 0 && EX_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+            if(EX_ins->rs == 31 && MEM_ins->instructionName == "jal"){
+                // definitely forwardable
+                forwardToExRs = 1;
+                ID_EX_buffer.readReg1 = EX_MEM_buffer.newPC;
+            }
+            else if(EX_ins->rs != 0 && EX_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
                 /*if not forwardable
                 if(MEM_ins->instructionName == "lw" || MEM_ins->instructionName == "lh" ||
                    MEM_ins->instructionName == "lhu" || MEM_ins->instructionName == "lb" ||
@@ -224,7 +249,12 @@ int main()
                     ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
                 }
             }
-            if(EX_ins->rt !=0 && EX_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+            if(EX_ins->rt == 31 && MEM_ins->instructionName == "jal"){
+                // definitely forwardable
+                forwardToExRt = 1;
+                ID_EX_buffer.readReg2 = EX_MEM_buffer.newPC;
+            }
+            else if(EX_ins->rt !=0 && EX_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
                 if(ID_ins->instructionType == R || EX_ins->instructionName == "sw" ||
                    EX_ins->instructionName == "sh" || EX_ins->instructionName == "sb"){
                     /*if not forwardable
@@ -345,14 +375,20 @@ int main()
 
 
         //ID
-        /*hazard handling for branches or stall*/
+        /*hazard handling for branches and stall*/
         if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz"){
-            if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){//dependency
+            if( (ID_ins->rs == 31 || ID_ins->rt == 31) && EX_ins->instructionName == "jal" ){
+                forwardToBranchRs = 0;
+                forwardToBranchRt = 0;
+                doStallID = 1;
+            }
+            else if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){//dependency
                 /*stall*/
                 forwardToBranchRs = 0;
                 forwardToBranchRt = 0;
                 doStallID = 1;
             }
+            /*if id is to stall because of rs, there is no need to check rt*/
             else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
                 /*stall*/
                 forwardToBranchRs = 0;
@@ -452,7 +488,7 @@ int main()
         MEM_ins->print();
         cout << "WB: " << WB_ins->returnName() << '\t';
         WB_ins->print();
-        system("PAUSE");
+       // system("PAUSE");
         /*if */
         if(IF_ins->instructionName == "halt" && ID_ins->instructionName == "halt" && EX_ins->instructionName == "halt" &&
            MEM_ins->instructionName == "halt" && WB_ins->instructionName == "halt"){
