@@ -341,12 +341,22 @@ int main()
 
         if(EX_ins->instructionName == "add"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+            unsigned int rsSign = ID_EX_buffer.readReg1 >> 31;
+            unsigned int rtSign = ID_EX_buffer.readReg2 >> 31;
+            unsigned int rdSign = EX_MEM_buffer.aluResult >> 31;
+            if( rsSign == rtSign && rsSign != rdSign )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "addu"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
         }
         else if(EX_ins->instructionName == "sub"){
             EX_MEM_buffer.aluResult = opFunc.sub(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
+            unsigned int rsSign = ID_EX_buffer.readReg1 >> 31;
+            int rt2sComplementSign = (~ID_EX_buffer.readReg2 + 1) >> 31;
+            unsigned int rdSign = EX_MEM_buffer.aluResult >> 31;
+            if(rsSign == rt2sComplementSign && rsSign != rdSign)
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "and"){
             EX_MEM_buffer.aluResult = opFunc.andFun(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
@@ -377,33 +387,54 @@ int main()
         }
         else if(EX_ins->instructionName == "addi"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+            unsigned int rsSign = ID_EX_buffer.readReg1 >> 31;
+            unsigned int immediateSign = EX_ins->immediate >> 31;
+            unsigned int rtSign = EX_MEM_buffer.aluResult >> 31;
+            if( rsSign == immediateSign && rsSign != rtSign )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "addiu"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
         }
         else if(EX_ins->instructionName == "lw"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+            if( (ID_EX_buffer.readReg1 >> 31) == (EX_ins->immediate >> 31) && (EX_ins->immediate >> 31) !=  (EX_MEM_buffer.aluResult>>31) )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "lh"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+            if( (ID_EX_buffer.readReg1 >> 31) == (EX_ins->immediate >> 31) && (EX_ins->immediate >> 31) !=  (EX_MEM_buffer.aluResult>>31) )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "lhu"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+            if( (ID_EX_buffer.readReg1 >> 31) == (EX_ins->immediate >> 31) && (EX_ins->immediate >> 31) !=  (EX_MEM_buffer.aluResult>>31) )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "lb"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+            if( (ID_EX_buffer.readReg1 >> 31) == (EX_ins->immediate >> 31) && (EX_ins->immediate >> 31) !=  (EX_MEM_buffer.aluResult>>31) )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "lbu"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+            if( (ID_EX_buffer.readReg1 >> 31) == (EX_ins->immediate >> 31) && (EX_ins->immediate >> 31) !=  (EX_MEM_buffer.aluResult>>31) )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "sw"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+            if( (ID_EX_buffer.readReg1 >> 31) == (EX_ins->immediate >> 31) && (EX_ins->immediate >> 31) !=  (EX_MEM_buffer.aluResult>>31) )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "sh"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+            if( (ID_EX_buffer.readReg1 >> 31) == (EX_ins->immediate >> 31) && (EX_ins->immediate >> 31) !=  (EX_MEM_buffer.aluResult>>31) )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "sb"){
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
+            if( (ID_EX_buffer.readReg1 >> 31) == (EX_ins->immediate >> 31) && (EX_ins->immediate >> 31) !=  (EX_MEM_buffer.aluResult>>31) )
+                numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "lui"){
             EX_MEM_buffer.aluResult = opFunc.lui(EX_ins->immediate);
@@ -473,28 +504,48 @@ int main()
 
 
         if(ID_ins->instructionName == "beq"){
-
+            /*calculate the destination*/
+            branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
+            /*overflow detection*/
+            unsigned int pcSign = IF_ID_buffer.newPC >> 31;
+            unsigned int cTimes4Sign = ID_ins->immediate << 2;
+            cTimes4Sign >>= 31;
+            unsigned int pcAfterSign = branchNewPC >> 31;
+            if(pcSign == cTimes4Sign && pcSign != pcAfterSign)
+                numberOverflow = 1;
+            /*if branch is taken*/
             if(ID_EX_buffer.readReg1 == ID_EX_buffer.readReg2){
                 branch = 1;
-                branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
-               // IF_ins->setToNop();
             }
         }
         else if(ID_ins->instructionName == "bne"){
-
+            /*calculate the destination*/
+            branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
+            /*overflow detection*/
+            unsigned int pcSign = IF_ID_buffer.newPC >> 31;
+            unsigned int cTimes4Sign = ID_ins->immediate << 2;
+            cTimes4Sign >>= 31;
+            unsigned int pcAfterSign = branchNewPC >> 31;
+            if(pcSign == cTimes4Sign && pcSign != pcAfterSign)
+                numberOverflow = 1;
+            /*if branch is taken*/
             if(ID_EX_buffer.readReg1 != ID_EX_buffer.readReg2){
                 branch = 1;
-                branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
               //  IF_ins->setToNop();
             }
         }
         else if(ID_ins->instructionName == "bgtz"){
-
+            branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
             unsigned int signBit = ID_EX_buffer.readReg1 >> 31;
+            /*overflow detection*/
+            unsigned int pcSign = IF_ID_buffer.newPC >> 31;
+            unsigned int cTimes4Sign = ID_ins->immediate << 2;
+            cTimes4Sign >>= 31;
+            unsigned int pcAfterSign = branchNewPC >> 31;
+            if(pcSign == cTimes4Sign && pcSign != pcAfterSign)
+                numberOverflow = 1;
             if(signBit == 0 && ID_EX_buffer.readReg1 != 0)
                 branch = 1;
-                branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
-              //  IF_ins->setToNop();
         }
         else if(ID_ins->instructionName == "jr"){
             branch = 1;
