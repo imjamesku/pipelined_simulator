@@ -92,16 +92,24 @@ int main()
         int branch = 0, branchNewPC;
         int forwardToBranchRs = 0, forwardToBranchRt = 0, forwardToExRs = 0, forwardToExRt = 0;
         int doStallID = 0;
+        int writeTo0 = 0, addressOverflow = 0, misalignment = 0, numberOverflow = 0;
 
         oldReg = *reg;
         //WB
         if(MEM_WB_buffer.regWrite == 1){
-            if(MEM_WB_buffer.doWriteMemToReg == 1){
+            /*write to zero check*/
+            if(MEM_WB_buffer.writeRegNum == 0){
+                writeTo0 = 1;
+            }
+            else{
+                if(MEM_WB_buffer.doWriteMemToReg == 1){
                 reg->reg[MEM_WB_buffer.writeRegNum] = MEM_WB_buffer.dataFromMem;
-            }
-            else if(MEM_WB_buffer.doWriteMemToReg == 0){
+                }
+                else if(MEM_WB_buffer.doWriteMemToReg == 0){
                 reg->reg[MEM_WB_buffer.writeRegNum] = MEM_WB_buffer.dataFromAlu;
+                }
             }
+
         }
 
             //jal
@@ -121,34 +129,67 @@ int main()
         if(EX_MEM_buffer.memRead == 1){
             unsigned int offset = EX_MEM_buffer.aluResult;
             if(MEM_ins->instructionName == "lw"){
-                MEM_ins->print();
-                MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 24 | dMemory->memory[offset+1] << 16 | dMemory->memory[offset+2] << 8 | dMemory->memory[offset+3];
+                /*overflow check*/
+                if(offset + 3 >= 1024 || offset >= 1024){
+                    addressOverflow = 1;
+                }
+                /*misalignment check*/
+                if(offset % 4 != 0){
+                    misalignment = 1;
+                }
+               if(addressOverflow == 0 && misalignment == 0)
+                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 24 | dMemory->memory[offset+1] << 16 | dMemory->memory[offset+2] << 8 | dMemory->memory[offset+3];
             }
             else if(MEM_ins->instructionName == "lh"){
-                if( (dMemory->memory[offset] >> 7) == 0 ){
-                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 8 | dMemory->memory[offset+1];
+                if(offset + 1 >= 1024 || offset >= 1024){
+                    addressOverflow = 1;
                 }
-                else{
-                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 8 | dMemory->memory[offset+1];
-                    unsigned int t = 0xFFFF0000;
-                    MEM_WB_buffer.dataFromMem = MEM_WB_buffer.dataFromMem | t;
+                if(offset%2 != 0){
+                    misalignment = 1;
+                }
+                if(addressOverflow == 0 && misalignment == 0){
+                    if( (dMemory->memory[offset] >> 7) == 0 ){
+                        MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 8 | dMemory->memory[offset+1];
+                    }
+                    else{
+                        MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 8 | dMemory->memory[offset+1];
+                        unsigned int t = 0xFFFF0000;
+                        MEM_WB_buffer.dataFromMem = MEM_WB_buffer.dataFromMem | t;
+                    }
                 }
             }
             else if(MEM_ins->instructionName == "lhu"){
-                MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 8 | dMemory->memory[offset+1];
+                if(offset + 1 >= 1024 || offset >= 1024){
+                    addressOverflow = 1;
+                }
+                if(offset%2 != 0){
+                    misalignment = 1;
+                }
+                if(addressOverflow == 0 && misalignment == 0)
+                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset] << 8 | dMemory->memory[offset+1];
             }
             else if(MEM_ins->instructionName == "lb"){
-                if( (dMemory->memory[offset] >> 7) == 0 ){
-                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset];
+                if(offset  >= 1024 ){
+                    addressOverflow = 1;
                 }
-                else{
+                if(addressOverflow == 0){
+                    if( (dMemory->memory[offset] >> 7) == 0 ){
                     MEM_WB_buffer.dataFromMem = dMemory->memory[offset];
-                    unsigned int t = 0xFFFFFF00;
-                    MEM_WB_buffer.dataFromMem = MEM_WB_buffer.dataFromMem | t;
+                    }
+                    else{
+                        MEM_WB_buffer.dataFromMem = dMemory->memory[offset];
+                        unsigned int t = 0xFFFFFF00;
+                        MEM_WB_buffer.dataFromMem = MEM_WB_buffer.dataFromMem | t;
+                    }
                 }
             }
             else if(MEM_ins->instructionName == "lbu"){
-                MEM_WB_buffer.dataFromMem = dMemory->memory[offset];
+                if(offset  >= 1024){
+                    addressOverflow = 1;
+                }
+                if(addressOverflow == 0){
+                    MEM_WB_buffer.dataFromMem = dMemory->memory[offset];
+                }
             }
         }
         if(EX_MEM_buffer.memWrite == 1){
