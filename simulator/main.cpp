@@ -196,17 +196,38 @@ int main()
             unsigned int offset = EX_MEM_buffer.aluResult;
             unsigned int rtValue = EX_MEM_buffer.readReg2;
             if(MEM_ins->instructionName == "sw"){
-                dMemory->memory[offset] = rtValue >> 24;
-                dMemory->memory[offset+1] = rtValue >> 16;
-                dMemory->memory[offset+2] = rtValue >> 8;
-                dMemory->memory[offset+3] = rtValue;
+                if(offset + 3 >= 1024 || offset >= 1024){
+                    addressOverflow == 1;
+                }
+                if(offset%4 != 0){
+                    misalignment = 1;
+                }
+                if(addressOverflow == 0 && misalignment == 0){
+                    dMemory->memory[offset] = rtValue >> 24;
+                    dMemory->memory[offset+1] = rtValue >> 16;
+                    dMemory->memory[offset+2] = rtValue >> 8;
+                    dMemory->memory[offset+3] = rtValue;
+                }
             }
             else if(MEM_ins->instructionName == "sh"){
-                dMemory->memory[offset+2] = rtValue >> 8;
-                dMemory->memory[offset+3] = rtValue;
+                if(offset + 1 >= 1024 || offset >= 1024){
+                    addressOverflow = 1;
+                }
+                if(offset%2 != 0){
+                    misalignment = 1;
+                }
+                if(addressOverflow == 0 && misalignment == 0){
+                    dMemory->memory[offset+2] = rtValue >> 8;
+                    dMemory->memory[offset+3] = rtValue;
+                }
             }
             else if(MEM_ins->instructionName == "sb"){
-                dMemory->memory[offset+3] = rtValue;
+                if(offset >= 1024){
+                    addressOverflow = 1;
+                }
+                if(addressOverflow == 0){
+                    dMemory->memory[offset+3] = rtValue;
+                }
             }
         }
         //EX
