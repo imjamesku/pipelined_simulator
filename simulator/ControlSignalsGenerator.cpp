@@ -31,7 +31,9 @@ int ControlSignalsGenerator::genMemtoReg(Decoder *instruction){
 
 
 int ControlSignalsGenerator::genRegWrite(Decoder* instruction){
-    if(instruction->instructionName == "jr")
+    if(instruction->instruction == 0)
+        return 0;
+    else if(instruction->instructionName == "jr")
         return 0;
     else if(instruction->instructionName == "sw")
         return 0;
@@ -64,6 +66,7 @@ int ControlSignalsGenerator::genMemRead(Decoder *instruction){
         return 1;
     else if(instruction->instructionName == "lbu")
         return 1;
+    return 0;
 
 }
 int ControlSignalsGenerator::genMemWrite(Decoder* instruction){

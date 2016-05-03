@@ -21,7 +21,7 @@ ID_EX::ID_EX()
             //EX control signals
         regDest = 0;
 }
-void setToZero(){
+void ID_EX::setToZero(){
         newPC = 0;
         readReg1 = 0;
         readReg2 = 0;

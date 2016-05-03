@@ -89,17 +89,21 @@ int main()
     unsigned int oldPC = pc->PC;
     MyRegister oldReg;
 
+    unsigned int IF_PC_plus4 = 0;
     while(1){
-        int branch = 0, branchNewPC;
+        int branch = 0;
+        unsigned int branchNewPC;
         int forwardToBranchRs = 0, forwardToBranchRt = 0, forwardToExRs = 0, forwardToExRt = 0;
         int doStallID = 0;
         int writeTo0 = 0, addressOverflow = 0, misalignment = 0, numberOverflow = 0;
+        int stallForRs = 0, stallForRt = 0;
 
         oldReg = *reg;
         //WB
         if(MEM_WB_buffer.regWrite == 1){
             /*write to zero check*/
             if(MEM_WB_buffer.writeRegNum == 0){
+                printf("ddddddddddddddddddd");
                 writeTo0 = 1;
             }
             else{
@@ -276,15 +280,19 @@ int main()
         else{
             if(ID_ins->rs == 31 && MEM_ins->instructionName == "jal" && ID_ins->readRs == 1){
                 doStallID = 1;
+                stallForRs = 1;
             }
             else if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && ID_ins->readRs == 1){
                     doStallID = 1;
+                    stallForRs = 1;
             }
             if(ID_ins->rt == 31 && MEM_ins->instructionName == "jal" && doStallID == 0 && ID_ins->readRt == 1){
                 doStallID = 1;
+                stallForRt = 1;
             }
             else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && doStallID == 0 && ID_ins->readRt == 1){
                     doStallID = 1;
+                    stallForRt = 1;
             }
             //if(ID_ins->rs == 31 && EX)
         }
@@ -318,7 +326,7 @@ int main()
                 ID_EX_buffer.readReg2 = EX_MEM_buffer.newPC;
             }
             else if(EX_ins->rt !=0 && EX_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && EX_ins->readRt == 1){
-                if(ID_ins->instructionType == R || EX_ins->instructionName == "sw" ||
+                if(EX_ins->instructionType == R || EX_ins->instructionName == "sw" ||
                    EX_ins->instructionName == "sh" || EX_ins->instructionName == "sb"){
                     /*if not forwardable
                     if(MEM_ins->instructionName == "lw" || MEM_ins->instructionName == "lh" ||
@@ -330,7 +338,7 @@ int main()
                     if(MEM_ins->instructionName != "lw" && MEM_ins->instructionName != "lh" &&
                     MEM_ins->instructionName != "lhu" && MEM_ins->instructionName != "lb" &&
                     MEM_ins->instructionName != "lbu"){
-                        forwardToBranchRt = 1;
+                        forwardToExRt = 1;
                         ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
                     }
                 }
@@ -455,6 +463,10 @@ int main()
 
         EX_MEM_buffer.readReg2 = ID_EX_buffer.readReg2;
 
+        if(ID_EX_buffer.regDest == 1)
+            EX_MEM_buffer.regDestIndex = EX_ins->rd;
+        else
+            EX_MEM_buffer.regDestIndex = EX_ins->rt;
 
 
         EX_MEM_buffer.newPC = ID_EX_buffer.newPC;
@@ -489,17 +501,28 @@ int main()
         }
         else{
             if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && ID_ins->readRs == 1){
+                /*if not forwardalble*/
                 if(EX_ins->instructionName == "lw" || EX_ins->instructionName == "lh" || EX_ins->instructionName == "lhu"||
                    EX_ins->instructionName == "lb" || EX_ins->instructionName == "lbu"){
+                    stallForRs = 1;
                     doStallID = 1;
                    }
+                else{
+                    stallForRs = 0;
+                }
             }
             if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && ID_ins->readRt == 1){
                 if(EX_ins->instructionName == "lw" || EX_ins->instructionName == "lh" || EX_ins->instructionName == "lhu"||
                    EX_ins->instructionName == "lb" || EX_ins->instructionName == "lbu"){
+                    stallForRt = 1;
                     doStallID = 1;
                    }
+                else{
+                    stallForRt = 0;
+                }
             }
+            if(stallForRs == 0 && stallForRt == 0)
+                doStallID = 0;
         }
         ID_EX_buffer.newPC = IF_ID_buffer.newPC;
         if(forwardToBranchRs == 0)
@@ -541,6 +564,7 @@ int main()
             }
         }
         else if(ID_ins->instructionName == "bgtz"){
+           // system("PAUSE");
             branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
             unsigned int signBit = ID_EX_buffer.readReg1 >> 31;
             /*overflow detection*/
@@ -584,7 +608,7 @@ int main()
             printSnapShot(snapShot, cycle, &oldReg, oldPC, IF_ins,
                           ID_ins, EX_ins, MEM_ins, WB_ins, branch, doStallID,
                           forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);
-            printErrorDump(errorFile, cycle, writeTo0, addressOverflow, misalignment, numberOverflow);
+            printErrorDump(errorFile, cycle + 1, writeTo0, addressOverflow, misalignment, numberOverflow);
         }
 
 
@@ -593,23 +617,23 @@ int main()
         //oldReg.print();
         printf("PC: 0x%x\n", oldPC);
         printf("IF: 0x%x\t", IF_ID_buffer.instruction);
-        if(doStallID == 1)  printf("to be stalled");
+        if(doStallID == 1)  printf("to be stalled\n");
         IF_ins->print();
         cout << "ID: " << ID_ins->returnName() << '\t';
         if(doStallID == 1)  printf("to be stalled");
         if(branch == 1) printf("\tbranch is taken");
-        if(forwardToBranchRs == 1)  printf("\t fwd to rs");
-        if(forwardToBranchRt == 1)  printf("\t fwd to rt");
+        if(forwardToBranchRs == 1)  printf("\t fwd to rs\n");
+        if(forwardToBranchRt == 1)  printf("\t fwd to rt\n");
         ID_ins->print();
         cout << "EX: " << EX_ins->returnName() << '\t';
         EX_ins->print();
-        if(forwardToExRs) printf("\t fwd to rs");
-        if(forwardToExRt) printf("\t fwd to rt");
+        if(forwardToExRs) printf("\t fwd to rs\n");
+        if(forwardToExRt) printf("\t fwd to rt\n");
         cout << "DM: " << MEM_ins->returnName() << '\t';
         MEM_ins->print();
         cout << "WB: " << WB_ins->returnName() << '\t';
         WB_ins->print();
-        system("PAUSE");
+        //system("PAUSE");
         /*if */
         if(misalignment == 1 || addressOverflow == 1){
             break;
@@ -625,14 +649,19 @@ int main()
             delete WB_ins;
             WB_ins = MEM_ins;
             MEM_ins = EX_ins;
+            /*insert NOP*/
             EX_ins = new Decoder();
+            /*flush ID_EX*/
             ID_EX_buffer.setToZero();
             //IF ID remain unchanged
 
-            IF_ID_buffer.newPC = pc->PC + 4;
+         //   IF_ID_buffer.newPC = pc->PC + 4;
+            IF_PC_plus4 = pc->PC+4;
         }
         else{
             if(branch == 1){
+                printf("看看pc = %X\n", pc->PC);
+                printf("看看branchnewpc = %X\n", branchNewPC);
                 pc->PC = branchNewPC;
                 //flush IF
                 IF_ins->setToNop();
@@ -642,11 +671,18 @@ int main()
             MEM_ins = EX_ins;
             EX_ins = ID_ins;
             ID_ins = IF_ins;
+            IF_ID_buffer.newPC = IF_PC_plus4;
             unsigned char* instruction = iMemory->getMemoryPointer(pc->PC);
             IF_ID_buffer.instruction = (instruction[0]<<24) | (instruction[1]<<16) | (instruction[2]<<8) | instruction[3];
             oldPC = pc->PC;//the pc we need to print is the pc where the ins in fetched,  so we need to copy the save the pc here
             IF_ins = new Decoder(instruction);
-            IF_ID_buffer.newPC = pc->PC + 4;
+           // IF_ID_buffer.newPC = pc->PC + 4;
+            IF_PC_plus4 = pc->PC+4;
+            /*printf("test\n");
+            IF_ins->print();
+            printf("\nPC=%X\n", pc->PC);
+            printf("newPC = %X", IF_ID_buffer.newPC);
+            printf("test\n");*/
 
         }
 
