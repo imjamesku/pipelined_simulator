@@ -6,6 +6,7 @@ class ID_EX
 {
     public:
         ID_EX();
+        void setToZero();
         virtual ~ID_EX();
         //data
         unsigned int newPC;

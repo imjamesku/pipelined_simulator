@@ -12,6 +12,8 @@ Decoder::Decoder(){
     instruction = 0;
     instructionName = "sll";
     type instructionType = R;
+    readRs = 0;
+    readRt = 0;
 }
 Decoder::Decoder(unsigned char *instruction)
 {
@@ -33,42 +35,68 @@ Decoder::Decoder(unsigned char *instruction)
         switch (funct){
             case 32:
                 instructionName = "add";
+                readRs = 1;
+                readRt = 1;
                 break;
             case 33:
                 instructionName = "addu";
+                readRs = 1;
+                readRt = 1;
                 break;
             case 34:
                 instructionName = "sub";
+                readRs = 1;
+                readRt = 1;
                 break;
             case 36:
                 instructionName = "and";
+                readRs = 1;
+                readRt = 1;
                 break;
             case 37:
                 instructionName = "or";
+                readRs = 1;
+                readRt = 1;
                 break;
             case 38:
                 instructionName = "xor";
+                readRs = 1;
+                readRt = 1;
                 break;
             case 39:
                 instructionName = "nor";
+                readRs = 1;
+                readRt = 1;
                 break;
             case 40:
                 instructionName = "nand";
+                readRs = 1;
+                readRt = 1;
                 break;
             case 42:
                 instructionName = "slt";
+                readRs = 1;
+                readRt = 1;
                 break;
             case 0:
                 instructionName = "sll";
+                readRs = 0;
+                readRt = 1;
                 break;
             case 2:
                 instructionName = "srl";
+                readRs = 0;
+                readRt = 1;
                 break;
             case 3:
                 instructionName = "sra";
+                readRs = 0;
+                readRt = 1;
                 break;
             case 8:
                 instructionName = "jr";
+                readRs = 1;
+                readRt = 0;
                 break;
         }
         if(funct != 0 && funct != 2 && funct != 3)
@@ -86,15 +114,21 @@ Decoder::Decoder(unsigned char *instruction)
         instructionType = J;
         instructionName = "j";
         address = instruction[3] | (instruction[2] << 8) | (instruction[1] << 16) | ((instruction[0] & 3) << 24);
+        readRs = 0;
+        readRt = 0;
     }
     else if(op == 3){
         instructionType = J;
         instructionName = "jal";
         address = instruction[3] | (instruction[2] << 8) | (instruction[1] << 16) | ((instruction[0] & 3) << 24);
+        readRs = 0;
+        readRt = 0;
     }
     else if(op == 63){
         instructionType = S;
         instructionName = "halt";
+        readRs = 0;
+        readRt = 0;
     }
     else{
         instructionType = I;
@@ -108,61 +142,95 @@ Decoder::Decoder(unsigned char *instruction)
         switch(op){
         case 8:
             instructionName = "addi";
+            readRs = 1;
+            readRt = 0;
             break;
         case 9:
             instructionName = "addiu";
             //immediate = (instruction[2] << 8) + (instruction[3]);
+            readRs = 1;
+            readRt = 0;
             break;
         case 35:
             instructionName = "lw";
+            readRs = 1;
+            readRt = 0;
             break;
         case 33:
             instructionName = "lh";
             break;
         case 37:
             instructionName = "lhu";
+            readRs = 1;
+            readRt = 0;
             break;
         case 32:
             instructionName = "lb";
+            readRs = 1;
+            readRt = 0;
             break;
         case 36:
             instructionName = "lbu";
+            readRs = 1;
+            readRt = 0;
             break;
         case 43:
             instructionName = "sw";
+            readRs = 1;
+            readRt = 1;
             break;
         case 41:
             instructionName = "sh";
+            readRs = 1;
+            readRt = 1;
             break;
         case 40:
             instructionName = "sb";
+            readRs = 1;
+            readRt = 1;
             break;
         case 15:
             instructionName = "lui";
+            readRs = 0;
+            readRt = 0;
             break;
         case 12:
             instructionName = "andi";
             immediate = (instruction[2] << 8) + (instruction[3]);
+            readRs = 1;
+            readRt = 0;
             break;
         case 13:
             instructionName = "ori";
             immediate = (instruction[2] << 8) + (instruction[3]);
+            readRs = 1;
+            readRt = 0;
             break;
         case 14:
             instructionName = "nori";
             immediate = (instruction[2] << 8) + (instruction[3]);
+            readRs = 1;
+            readRt = 0;
             break;
         case 10:
             instructionName = "slti";
+            readRs = 1;
+            readRt = 0;
             break;
         case 4:
             instructionName = "beq";
+            readRs = 1;
+            readRt = 1;
             break;
         case 5:
             instructionName = "bne";
+            readRs = 1;
+            readRt = 1;
             break;
         case 7:
             instructionName = "bgtz";
+            readRs = 1;
+            readRt = 0;
             break;
         }
     }
@@ -179,6 +247,8 @@ void Decoder::setToNop(){
     instruction = 0;
     instructionName = "sll";
     instructionType = R;
+    readRs = 0;
+    readRt = 0;
 }
 
 std::string Decoder::returnName(){

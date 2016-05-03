@@ -61,6 +61,8 @@ class Decoder
     unsigned int immediate;
     unsigned int address;
     unsigned int instruction;
+    unsigned int readRs;
+    unsigned int readRt;
     std::string instructionName;
     type instructionType;
     protected:
