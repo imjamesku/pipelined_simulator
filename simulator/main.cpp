@@ -103,7 +103,6 @@ int main()
         if(MEM_WB_buffer.regWrite == 1){
             /*write to zero check*/
             if(MEM_WB_buffer.writeRegNum == 0){
-                printf("ddddddddddddddddddd");
                 writeTo0 = 1;
             }
             else{
@@ -612,7 +611,7 @@ int main()
         }
 
 
-        printf("cycle %d\n", cycle);
+        /*printf("cycle %d\n", cycle);
         reg->print();
         //oldReg.print();
         printf("PC: 0x%x\n", oldPC);
@@ -632,7 +631,7 @@ int main()
         cout << "DM: " << MEM_ins->returnName() << '\t';
         MEM_ins->print();
         cout << "WB: " << WB_ins->returnName() << '\t';
-        WB_ins->print();
+        WB_ins->print();*/
         //system("PAUSE");
         /*if */
         if(misalignment == 1 || addressOverflow == 1){
@@ -656,12 +655,10 @@ int main()
             //IF ID remain unchanged
 
          //   IF_ID_buffer.newPC = pc->PC + 4;
-            IF_PC_plus4 = pc->PC+4;
+            //IF_PC_plus4 = pc->PC+4;
         }
         else{
             if(branch == 1){
-                printf("看看pc = %X\n", pc->PC);
-                printf("看看branchnewpc = %X\n", branchNewPC);
                 pc->PC = branchNewPC;
                 //flush IF
                 IF_ins->setToNop();
