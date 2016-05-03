@@ -603,10 +603,13 @@ int main()
         WB_ins->print();
        // system("PAUSE");
         /*if */
+        if(misalignment == 1 || addressOverflow == 1){
+            break;
+        }
         if(IF_ins->instructionName == "halt" && ID_ins->instructionName == "halt" && EX_ins->instructionName == "halt" &&
            MEM_ins->instructionName == "halt" && WB_ins->instructionName == "halt"){
                 break;
-           }
+        }
 
 
 
@@ -662,16 +665,16 @@ int main()
 
        //system("PAUSE");
     }
-    delete dMemory;
-    delete iMemory;
-    delete controlUnit;
-    delete IF_ins;
-    delete ID_ins;
-    delete EX_ins;
-    delete MEM_ins;
-    delete WB_ins;
-    delete pc;
-    delete reg;
+    if(dMemory != NULL) delete dMemory;
+    if(iMemory != NULL) delete iMemory;
+    if(controlUnit != NULL) delete controlUnit;
+    if(IF_ins != NULL)  delete IF_ins;
+    if(ID_ins != NULL) delete ID_ins;
+    if(EX_ins != NULL) delete EX_ins;
+    if(MEM_ins != NULL) delete MEM_ins;
+    if(WB_ins != NULL) delete WB_ins;
+    if(pc != NULL)  delete pc;
+    if(reg != NULL) delete reg;
     fclose(iImage);
     fclose(dImage);
     fclose(insOut);
