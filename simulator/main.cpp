@@ -19,6 +19,7 @@ void printSnapShot(FILE* snapShot, int cycle, MyRegister* reg, int pc,
                    Decoder* MEM_ins, Decoder* WB_ins, int branch, int stall,
                    int forwardToBranchRs, int forwardToBranchRt, int forwardToExRs, int forwardToExRt);
 void print(FILE* debug, int cycle, MyRegister* reg, ProgramCounter* pc);
+void printErrorDump(FILE* errorDump, int cycle, int writeTo0, int addressOverflow, int misalignment, int numOverflow);
 int main()
 {
 
@@ -197,7 +198,7 @@ int main()
             unsigned int rtValue = EX_MEM_buffer.readReg2;
             if(MEM_ins->instructionName == "sw"){
                 if(offset + 3 >= 1024 || offset >= 1024){
-                    addressOverflow == 1;
+                    addressOverflow = 1;
                 }
                 if(offset%4 != 0){
                     misalignment = 1;
@@ -353,7 +354,7 @@ int main()
         else if(EX_ins->instructionName == "sub"){
             EX_MEM_buffer.aluResult = opFunc.sub(ID_EX_buffer.readReg1, ID_EX_buffer.readReg2);
             unsigned int rsSign = ID_EX_buffer.readReg1 >> 31;
-            int rt2sComplementSign = (~ID_EX_buffer.readReg2 + 1) >> 31;
+            unsigned rt2sComplementSign = (~ID_EX_buffer.readReg2 + 1) >> 31;
             unsigned int rdSign = EX_MEM_buffer.aluResult >> 31;
             if(rsSign == rt2sComplementSign && rsSign != rdSign)
                 numberOverflow = 1;
@@ -454,10 +455,7 @@ int main()
 
         EX_MEM_buffer.readReg2 = ID_EX_buffer.readReg2;
 
-        if(ID_EX_buffer.regDest == 1)
-            EX_MEM_buffer.regDestIndex = EX_ins->rd;
-        else if(ID_EX_buffer.regDest == 0)
-            EX_MEM_buffer.regDestIndex = EX_ins->rt;
+
 
         EX_MEM_buffer.newPC = ID_EX_buffer.newPC;
         //control signals
@@ -498,8 +496,10 @@ int main()
             }
         }
         ID_EX_buffer.newPC = IF_ID_buffer.newPC;
-        ID_EX_buffer.readReg1 = reg->reg[ID_ins->rs];
-        ID_EX_buffer.readReg2 = reg->reg[ID_ins->rt];
+        if(forwardToBranchRs == 0)
+            ID_EX_buffer.readReg1 = reg->reg[ID_ins->rs];
+        if(forwardToBranchRt == 0)
+            ID_EX_buffer.readReg2 = reg->reg[ID_ins->rt];
 
 
 
@@ -573,10 +573,12 @@ int main()
         ID_EX_buffer.memWrite = controlSignalsGenerator.genMemWrite(ID_ins);
         ID_EX_buffer.regDest = controlSignalsGenerator.genRegDst(ID_ins);
         //IF
+        /*print file*/
         if(cycle > -1){
             printSnapShot(snapShot, cycle, &oldReg, oldPC, IF_ins,
                           ID_ins, EX_ins, MEM_ins, WB_ins, branch, doStallID,
                           forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);
+            printErrorDump(errorFile, cycle, writeTo0, addressOverflow, misalignment, numberOverflow);
         }
 
 
@@ -601,7 +603,7 @@ int main()
         MEM_ins->print();
         cout << "WB: " << WB_ins->returnName() << '\t';
         WB_ins->print();
-       // system("PAUSE");
+        system("PAUSE");
         /*if */
         if(misalignment == 1 || addressOverflow == 1){
             break;
@@ -716,6 +718,20 @@ void printSnapShot(FILE* snapShot, int cycle, MyRegister* reg, int pc,
     //fprintf(snapShot, "\n");
 
     fprintf(snapShot,"\n\n\n");
+}
+void printErrorDump(FILE* errorDump, int cycle, int writeTo0, int addressOverflow, int misalignment, int numOverflow){
+    if(writeTo0 == 1){
+        fprintf(errorDump, "In cycle %d: Write $0 Error\n", cycle);
+    }
+    if(addressOverflow == 1){
+        fprintf(errorDump, "In cycle %d: Address Overflow\n", cycle);
+    }
+    if(misalignment == 1){
+        fprintf(errorDump, "In cycle %d: Misalignment Error\n", cycle);
+    }
+    if(numOverflow == 1){
+        fprintf(errorDump, "In cycle %d: Number Overflow\n", cycle);
+    }
 }
 void print(FILE* debug, int cycle, MyRegister* reg, ProgramCounter* pc){
     fprintf(debug, "cycle %d\n", cycle);
