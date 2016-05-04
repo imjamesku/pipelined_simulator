@@ -594,7 +594,7 @@ int main()
         }
         else if(ID_ins->instructionName == "jal"){
             branch = 1;
-            reg->reg[31] = IF_ID_buffer.newPC;
+           // reg->reg[31] = IF_ID_buffer.newPC;
             unsigned int pcFrom31To28 = IF_ID_buffer.newPC & 0xF0000000;
             branchNewPC = pcFrom31To28 | ((ID_ins->address) <<2 );
          //   IF_ins->setToNop();
@@ -704,6 +704,8 @@ int main()
             }*/
             pc->PC += 4;
         }
+        if(cycle > 500000)
+            break;
 
         cycle++;
 
