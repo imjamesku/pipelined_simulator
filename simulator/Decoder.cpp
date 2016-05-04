@@ -162,6 +162,8 @@ Decoder::Decoder(unsigned char *instruction)
             break;
         case 33:
             instructionName = "lh";
+            readRs = 1;
+            readRt = 0;
             break;
         case 37:
             instructionName = "lhu";
