@@ -254,6 +254,8 @@ void Decoder::setToNop(){
 std::string Decoder::returnName(){
     if(this->instruction == 0)
         return "NOP";
+    if(this->instructionName == "sll" && this->rt == 0 && this->rd == 0 && this->shamt == 0)
+        return "NOP";
     std::string uppercaseName = instructionName;
     for(int i=0; i<instructionName.length(); i++){
         uppercaseName.at(i) = toupper(instructionName.at(i));
