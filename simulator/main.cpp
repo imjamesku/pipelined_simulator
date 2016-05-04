@@ -240,7 +240,7 @@ int main()
         }
         //EX
         /*hazard handling for branches in ID STAGE*/
-        if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz"){
+        if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz" || ID_ins->instructionName == "jr"){
             /*rs*/
             if(ID_ins->rs == 31 && MEM_ins->instructionName == "jal"){
                 //ID_EX_buffer.readReg1 = EX_MEM_buffer.newPC;
@@ -282,6 +282,10 @@ int main()
                     forwardToBranchRt = 1;
                 }
 
+            }
+            if(ID_ins->instructionName == "jr" && MEM_ins->instructionName == "jal" && doStallID == 0){
+                ID_ins->readRsValue = EX_MEM_buffer.newPC;
+                forwardToBranchRs = 1;
             }
         }
         else{
@@ -488,7 +492,7 @@ int main()
         //ID
         /*hazard handling for branches and stall*/
         if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz"){
-            if( (ID_ins->rs == 31 || ID_ins->rt == 31) && EX_ins->instructionName == "jal" ){
+            if( (ID_ins->rs == 31 || ID_ins->rt == 31 || ID_ins->instructionName == "jr") && EX_ins->instructionName == "jal" ){
                 forwardToBranchRs = 0;
                 forwardToBranchRt = 0;
                 doStallID = 1;
@@ -592,7 +596,7 @@ int main()
         }
         else if(ID_ins->instructionName == "jr"){
             branch = 1;
-            branchNewPC = ID_EX_buffer.readReg1;
+            branchNewPC = ID_ins->readRsValue;
           //  IF_ins->setToNop();
         }
         else if(ID_ins->instructionName == "j"){
