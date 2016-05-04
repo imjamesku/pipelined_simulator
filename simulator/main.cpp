@@ -243,7 +243,8 @@ int main()
         if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz"){
             /*rs*/
             if(ID_ins->rs == 31 && MEM_ins->instructionName == "jal"){
-                ID_EX_buffer.readReg1 = EX_MEM_buffer.newPC;
+                //ID_EX_buffer.readReg1 = EX_MEM_buffer.newPC;
+                ID_ins->readRsValue = EX_MEM_buffer.newPC;
                 forwardToBranchRs = 1;
             }
             else if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){//dependency
@@ -255,14 +256,16 @@ int main()
                    }
                 /*if forwardable*/
                 else{
-                    ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
+                    //ID_EX_buffer.readReg1 = EX_MEM_buffer.aluResult;
+                    ID_ins->readRsValue = EX_MEM_buffer.aluResult;
                     forwardToBranchRs = 1;
                 }
             }
 
             /*rt*/
             if(ID_ins->rt == 31 && MEM_ins->instructionName == "jal" && doStallID == 0){
-                ID_EX_buffer.readReg2 = EX_MEM_buffer.newPC;
+                //ID_EX_buffer.readReg2 = EX_MEM_buffer.newPC;
+                ID_ins->readRtValue = EX_MEM_buffer.newPC;
                 forwardToBranchRt = 1;
             }
             else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && doStallID == 0){
@@ -274,7 +277,8 @@ int main()
                    }
                 /*if forwardable*/
                 else{
-                    ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+                  //  ID_EX_buffer.readReg2 = EX_MEM_buffer.aluResult;
+                  ID_ins->readRtValue = EX_MEM_buffer.aluResult;
                     forwardToBranchRt = 1;
                 }
 
@@ -434,6 +438,7 @@ int main()
                 numberOverflow = 1;
         }
         else if(EX_ins->instructionName == "sw"){
+            //printf("Reg1 = %d", reg->reg[0]);
             EX_MEM_buffer.aluResult = opFunc.add(ID_EX_buffer.readReg1, EX_ins->immediate);
             if( (ID_EX_buffer.readReg1 >> 31) == (EX_ins->immediate >> 31) && (EX_ins->immediate >> 31) !=  (EX_MEM_buffer.aluResult>>31) )
                 numberOverflow = 1;
@@ -533,6 +538,11 @@ int main()
         if(forwardToBranchRt == 0)
             ID_EX_buffer.readReg2 = reg->reg[ID_ins->rt];
 
+        if(forwardToBranchRs == 0)
+            ID_ins->readRsValue = reg->reg[ID_ins->rs];
+        if(forwardToBranchRt == 0)
+            ID_ins->readRtValue = reg->reg[ID_ins->rt];
+
 
 
         if(ID_ins->instructionName == "beq"){
@@ -546,7 +556,7 @@ int main()
             if(pcSign == cTimes4Sign && pcSign != pcAfterSign)
                 numberOverflow = 1;
             /*if branch is taken*/
-            if(ID_EX_buffer.readReg1 == ID_EX_buffer.readReg2){
+            if(ID_ins->readRsValue == ID_ins->readRtValue){
                 branch = 1;
             }
         }
@@ -561,7 +571,7 @@ int main()
             if(pcSign == cTimes4Sign && pcSign != pcAfterSign)
                 numberOverflow = 1;
             /*if branch is taken*/
-            if(ID_EX_buffer.readReg1 != ID_EX_buffer.readReg2){
+            if(ID_ins->readRsValue != ID_ins->readRtValue){
                 branch = 1;
               //  IF_ins->setToNop();
             }
@@ -569,7 +579,7 @@ int main()
         else if(ID_ins->instructionName == "bgtz"){
            // system("PAUSE");
             branchNewPC = IF_ID_buffer.newPC + 4 * ID_ins->immediate;
-            unsigned int signBit = ID_EX_buffer.readReg1 >> 31;
+            unsigned int signBit = (ID_ins->readRsValue) >> 31;
             /*overflow detection*/
             unsigned int pcSign = IF_ID_buffer.newPC >> 31;
             unsigned int cTimes4Sign = ID_ins->immediate << 2;
@@ -577,7 +587,7 @@ int main()
             unsigned int pcAfterSign = branchNewPC >> 31;
             if(pcSign == cTimes4Sign && pcSign != pcAfterSign)
                 numberOverflow = 1;
-            if(signBit == 0 && ID_EX_buffer.readReg1 != 0)
+            if(signBit == 0 && ID_ins->readRsValue != 0)
                 branch = 1;
         }
         else if(ID_ins->instructionName == "jr"){
