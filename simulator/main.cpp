@@ -14,6 +14,10 @@
 #include <cstdlib>
 #define sp 29
 using namespace std;
+void printDebug(FILE* snapShot, int cycle, MyRegister* reg, int pc,
+                   Decoder* IF_ins, Decoder* ID_ins, Decoder* EX_ins,
+                   Decoder* MEM_ins, Decoder* WB_ins, int branch, int stall,
+                   int forwardToBranchRs, int forwardToBranchRt, int forwardToExRs, int forwardToExRt);
 void printSnapShot(FILE* snapShot, int cycle, MyRegister* reg, int pc,
                    Decoder* IF_ins, Decoder* ID_ins, Decoder* EX_ins,
                    Decoder* MEM_ins, Decoder* WB_ins, int branch, int stall,
@@ -100,6 +104,7 @@ int main()
 
         oldReg = *reg;
         //WB
+
         if(MEM_WB_buffer.regWrite == 1){
             /*write to zero check*/
             if(MEM_WB_buffer.writeRegNum == 0){
@@ -115,7 +120,6 @@ int main()
             }
 
         }
-
             //jal
         if(WB_ins->instructionName == "jal"){
             reg->reg[31] = MEM_WB_buffer.newPC;
@@ -221,8 +225,8 @@ int main()
                     misalignment = 1;
                 }
                 if(addressOverflow == 0 && misalignment == 0){
-                    dMemory->memory[offset+2] = rtValue >> 8;
-                    dMemory->memory[offset+3] = rtValue;
+                    dMemory->memory[offset] = rtValue >> 8;
+                    dMemory->memory[offset+1] = rtValue;
                 }
             }
             else if(MEM_ins->instructionName == "sb"){
@@ -230,7 +234,7 @@ int main()
                     addressOverflow = 1;
                 }
                 if(addressOverflow == 0){
-                    dMemory->memory[offset+3] = rtValue;
+                    dMemory->memory[offset] = rtValue;
                 }
             }
         }
@@ -607,6 +611,9 @@ int main()
             printSnapShot(snapShot, cycle, &oldReg, oldPC, IF_ins,
                           ID_ins, EX_ins, MEM_ins, WB_ins, branch, doStallID,
                           forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);
+            printDebug(debug, cycle, &oldReg, oldPC, IF_ins,
+                          ID_ins, EX_ins, MEM_ins, WB_ins, branch, doStallID,
+                          forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);
             printErrorDump(errorFile, cycle + 1, writeTo0, addressOverflow, misalignment, numberOverflow);
         }
 
@@ -637,6 +644,8 @@ int main()
         if(misalignment == 1 || addressOverflow == 1){
             break;
         }
+        if(WB_ins->instructionName == "halt")
+            break;
         if(IF_ins->instructionName == "halt" && ID_ins->instructionName == "halt" && EX_ins->instructionName == "halt" &&
            MEM_ins->instructionName == "halt" && WB_ins->instructionName == "halt"){
                 break;
@@ -778,4 +787,44 @@ void print(FILE* debug, int cycle, MyRegister* reg, ProgramCounter* pc){
     reg->printSnapShot(debug);
     fprintf(debug, "PC: 0x%08X", pc->PC);
     fprintf(debug, "\n\n\n");
+}
+
+void printDebug(FILE* snapShot, int cycle, MyRegister* reg, int pc,
+                   Decoder* IF_ins, Decoder* ID_ins, Decoder* EX_ins,
+                   Decoder* MEM_ins, Decoder* WB_ins, int branch, int stall,
+                   int forwardToBranchRs, int forwardToBranchRt, int forwardToExRs, int forwardToExRt){
+    fprintf(snapShot, "cycle %d\n", cycle);
+    reg->printSnapShot(snapShot);
+    fprintf(snapShot, "PC: 0x%08X\n", pc);
+
+    fprintf(snapShot, "IF: 0x%08X\n", IF_ins->instruction);
+    IF_ins->printDebug(snapShot);
+    if(stall == 1)  fprintf(snapShot, " to_be_stalled");
+    else if(branch == 1)    fprintf(snapShot, " to_be_flushed");
+    fprintf(snapShot, "\n");
+
+    fprintf(snapShot, "ID: %s\n", ID_ins->returnName().data());
+    ID_ins->printDebug(snapShot);
+    if(stall == 1)  fprintf(snapShot, " to_be_stalled");
+    else{
+        if(forwardToBranchRs == 1) fprintf(snapShot, " fwd_EX-DM_rs_$%d", ID_ins->rs);
+        if(forwardToBranchRt == 1) fprintf(snapShot, " fwd_EX-DM_rt_$%d", ID_ins->rt);
+    }
+    fprintf(snapShot, "\n");
+
+    fprintf(snapShot, "EX: %s\n", EX_ins->returnName().data());
+    EX_ins->printDebug(snapShot);
+    if(forwardToExRs == 1) fprintf(snapShot, " fwd_EX-DM_rs_$%d", EX_ins->rs);
+    if(forwardToExRt == 1) fprintf(snapShot, " fwd_EX-DM_rt_$%d", EX_ins->rt);
+    fprintf(snapShot, "\n");
+
+    fprintf(snapShot, "DM: %s\n", MEM_ins->returnName().data());
+    MEM_ins->printDebug(snapShot);
+    fprintf(snapShot, "\n");
+
+    fprintf(snapShot, "WB: %s\n", WB_ins->returnName().data());
+    WB_ins->printDebug(snapShot);
+    //fprintf(snapShot, "\n");
+
+    fprintf(snapShot,"\n\n\n");
 }
