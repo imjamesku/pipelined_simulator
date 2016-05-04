@@ -14,9 +14,13 @@ Decoder::Decoder(){
     type instructionType = R;
     readRs = 0;
     readRt = 0;
+    readRsValue = 0;
+    readRtValue = 0;
 }
 Decoder::Decoder(unsigned char *instruction)
 {
+    readRsValue = 0;
+    readRtValue = 0;
     op = 0;
     instructionType = R;
     rs = 0;
@@ -249,6 +253,8 @@ void Decoder::setToNop(){
     instructionType = R;
     readRs = 0;
     readRt = 0;
+    readRsValue = 0;
+    readRtValue = 0;
 }
 
 std::string Decoder::returnName(){
