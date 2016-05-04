@@ -491,7 +491,7 @@ int main()
 
         //ID
         /*hazard handling for branches and stall*/
-        if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz"){
+        if(ID_ins->instructionName == "beq" || ID_ins->instructionName == "bne" || ID_ins->instructionName == "bgtz" || ID_ins->instructionName == "jr"){
             if( (ID_ins->rs == 31 || ID_ins->rt == 31 || ID_ins->instructionName == "jr") && EX_ins->instructionName == "jal" ){
                 forwardToBranchRs = 0;
                 forwardToBranchRt = 0;
