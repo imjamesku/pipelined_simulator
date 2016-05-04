@@ -47,10 +47,10 @@ int main()
 
     dImage = fopen("dimage.bin", "rb");
     iImage = fopen("iimage.bin", "rb");
-    insOut = fopen("ins1.txt", "w");
+   // insOut = fopen("ins1.txt", "w");
     snapShot = fopen("snapshot.rpt", "w");
     errorFile = fopen("error_dump.rpt", "w");
-    debug = fopen("debug.rpt", "w");
+  //  debug = fopen("debug.rpt", "w");
 
     //read iimage
     result = fread(readArray, 4, 1, iImage);
@@ -625,9 +625,9 @@ int main()
             printSnapShot(snapShot, cycle, &oldReg, oldPC, IF_ins,
                           ID_ins, EX_ins, MEM_ins, WB_ins, branch, doStallID,
                           forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);
-            printDebug(debug, cycle, &oldReg, oldPC, IF_ins,
+            /*printDebug(debug, cycle, &oldReg, oldPC, IF_ins,
                           ID_ins, EX_ins, MEM_ins, WB_ins, branch, doStallID,
-                          forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);
+                          forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);*/
             printErrorDump(errorFile, cycle + 1, writeTo0, addressOverflow, misalignment, numberOverflow);
         }
 
@@ -744,10 +744,10 @@ int main()
     if(reg != NULL) delete reg;
     fclose(iImage);
     fclose(dImage);
-    fclose(insOut);
+    //fclose(insOut);
     fclose(snapShot);
     fclose(errorFile);
-    fclose(debug);
+   // fclose(debug);
     return 0;
 }
 void printSnapShot(FILE* snapShot, int cycle, MyRegister* reg, int pc,
