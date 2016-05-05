@@ -50,7 +50,7 @@ int main()
    // insOut = fopen("ins1.txt", "w");
     snapShot = fopen("snapshot.rpt", "w");
     errorFile = fopen("error_dump.rpt", "w");
-  //  debug = fopen("debug.rpt", "w");
+ //   debug = fopen("debug.rpt", "w");
 
     //read iimage
     result = fread(readArray, 4, 1, iImage);
@@ -497,14 +497,14 @@ int main()
                 forwardToBranchRt = 0;
                 doStallID = 1;
             }
-            else if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){//dependency
+            else if(ID_ins->rs != 0 && ID_ins->rs == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && ID_ins->readRs == 1){//dependency
                 /*stall*/
                 forwardToBranchRs = 0;
                 forwardToBranchRt = 0;
                 doStallID = 1;
             }
             /*if id is to stall because of rs, there is no need to check rt*/
-            else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1){
+            else if(ID_ins->rt != 0 && ID_ins->rt == EX_MEM_buffer.regDestIndex && EX_MEM_buffer.regWrite == 1 && ID_ins->readRt == 1){
                 /*stall*/
                 forwardToBranchRs = 0;
                 forwardToBranchRt = 0;
@@ -625,7 +625,7 @@ int main()
             printSnapShot(snapShot, cycle, &oldReg, oldPC, IF_ins,
                           ID_ins, EX_ins, MEM_ins, WB_ins, branch, doStallID,
                           forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);
-            /*printDebug(debug, cycle, &oldReg, oldPC, IF_ins,
+          /*  printDebug(debug, cycle, &oldReg, oldPC, IF_ins,
                           ID_ins, EX_ins, MEM_ins, WB_ins, branch, doStallID,
                           forwardToBranchRs, forwardToBranchRt, forwardToExRs, forwardToExRt);*/
             printErrorDump(errorFile, cycle + 1, writeTo0, addressOverflow, misalignment, numberOverflow);
@@ -747,7 +747,7 @@ int main()
     //fclose(insOut);
     fclose(snapShot);
     fclose(errorFile);
-   // fclose(debug);
+  //  fclose(debug);
     return 0;
 }
 void printSnapShot(FILE* snapShot, int cycle, MyRegister* reg, int pc,
